@@ -1,0 +1,11 @@
+apiVersion: cilium.io/v2alpha1
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: lb-pool
+spec:
+  blocks:
+    - start: 10.40.1.0
+      stop: 10.40.1.254
+  serviceSelector:
+    matchLabels:
+      type: public-lb
