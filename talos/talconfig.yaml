@@ -1,0 +1,31 @@
+---
+clusterName: homelab-cluster
+talosVersion: v1.12.2
+kubernetesVersion: v1.35.0
+endpoint: https://10.40.0.11:6443
+domain: cluster.local
+allowSchedulingOnMasters: true
+
+# Disable built-in Flannel to use Cilium
+cniConfig:
+  name: none
+
+nodes:
+  - hostname: node1
+    ipAddress: 10.40.0.11
+    controlPlane: true
+    installDisk: /dev/nvme0n1
+    nameservers:
+      - 9.9.9.9
+  - hostname: node2
+    ipAddress: 10.40.0.12
+    controlPlane: true
+    installDisk: /dev/nvme0n1
+    nameservers:
+      - 9.9.9.9
+  - hostname: node3
+    ipAddress: 10.40.0.13
+    controlPlane: true
+    installDisk: /dev/nvme0n1
+    nameservers:
+      - 9.9.9.9
