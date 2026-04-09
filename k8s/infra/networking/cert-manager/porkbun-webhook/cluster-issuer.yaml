@@ -1,0 +1,22 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-issuer
+spec:
+  acme:
+    email: mail@noe-t.dev
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-porkbun-tls
+    solvers:
+      - dns01:
+          webhook:
+            groupName: porkbun.talinx.dev
+            solverName: porkbun
+            config:
+              apiKey:
+                key: PORKBUN_API_KEY
+                name: porkbun-secret
+              secretApiKey:
+                key: PORKBUN_SECRET_API_KEY
+                name: porkbun-secret
