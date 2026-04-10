@@ -3,10 +3,11 @@ kind: Gateway
 metadata:
   name: cilium-gateway
   namespace: kube-system
-  annotations:
-    io.cilium.gateway/service-labels: "type=public-lb"
 spec:
   gatewayClassName: cilium
+  infrastructure:
+    labels:
+      type: public-lb
   listeners:
     - name: http
       protocol: HTTP
@@ -14,7 +15,6 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-
     - name: https
       protocol: HTTPS
       port: 443
