@@ -18,3 +18,5 @@ spec:
   chartRef:
     kind: OCIRepository
     name: porkbun-webhook
+  values:
+    groupName: acme.noe-t.dev

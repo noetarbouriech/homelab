@@ -11,7 +11,7 @@ spec:
     solvers:
       - dns01:
           webhook:
-            groupName: porkbun.noe-t.dev
+            groupName: acme.noe-t.dev
             solverName: porkbun
             config:
               apiKey:
