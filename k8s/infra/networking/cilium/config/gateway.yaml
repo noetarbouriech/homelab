@@ -3,6 +3,8 @@ kind: Gateway
 metadata:
   name: cilium-gateway
   namespace: kube-system
+  annotations:
+    io.cilium.gateway/service-labels: "type=public-lb"
 spec:
   gatewayClassName: cilium
   listeners:
