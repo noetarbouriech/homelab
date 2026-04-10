@@ -20,3 +20,6 @@ spec:
               secretApiKey:
                 key: PORKBUN_SECRET_API_KEY
                 name: porkbun-secret
+          selector:
+            dnsZones:
+              - "noe-t.dev"
