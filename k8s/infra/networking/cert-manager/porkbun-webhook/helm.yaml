@@ -1,20 +1,24 @@
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
-  name: cert-manager-webhook-porkbun
+  name: porkbun-webhook
 spec:
   interval: 1h
-  url: https://talinx.github.io/cert-manager-webhook-porkbun
+  type: oci
+  url: oci://ghcr.io/noetarbouriech/webhook-porkbun/charts
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: cert-manager-webhook-porkbun
+  name: porkbun-webhook
 spec:
-  interval: 12h
+  interval: 1h
+  releaseName: porkbun-webhook
   chart:
     spec:
-      chart: cert-manager-webhook-porkbun
+      chart: porkbun-webhook
       sourceRef:
         kind: HelmRepository
-        name: cert-manager-webhook-porkbun
+        name: porkbun-webhook
+        namespace: flux-system
+      interval: 1h
