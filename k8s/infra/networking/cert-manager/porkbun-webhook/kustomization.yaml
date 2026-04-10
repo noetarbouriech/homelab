@@ -4,3 +4,4 @@ resources:
   - helm.yaml
   - external-secret.yaml
   - cluster-issuer.yaml
+  - certificate.yaml

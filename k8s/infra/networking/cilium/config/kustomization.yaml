@@ -4,3 +4,5 @@ resources:
   - l2-policy.yaml
   - pool.yaml
   - https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+  - gatewayclass.yaml
+  - gateway.yaml
