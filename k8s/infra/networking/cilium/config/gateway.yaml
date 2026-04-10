@@ -8,6 +8,8 @@ spec:
   infrastructure:
     labels:
       type: public-lb
+    annotations:
+      "lbipam.cilium.io/ips": "10.40.1.0" # pin the ip
   listeners:
     - name: http
       protocol: HTTP
