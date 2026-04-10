@@ -5,7 +5,9 @@ metadata:
 spec:
   interval: 1h
   type: oci
-  url: oci://ghcr.io/noetarbouriech/webhook-porkbun/charts
+  url: oci://ghcr.io/noetarbouriech/webhook-porkbun/charts/porkbun-webhook
+  ref:
+    digest: sha256:e3c6443f808b121eedd34d8a894312276d49bb9829148cbc44b5c91a755d3a6
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
