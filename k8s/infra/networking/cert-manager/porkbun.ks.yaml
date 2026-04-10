@@ -13,3 +13,8 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
+
+  dependsOn:
+    - name: bitwarden-secretsmanager
+      namespace: external-secrets
+    - name: cert-manager
