@@ -5,7 +5,7 @@ metadata:
 spec:
   interval: 10m
   prune: true
-  wait: true
+  wait: false
 
   path: ./k8s/infra/networking/cert-manager/porkbun-webhook
   targetNamespace: cert-manager
