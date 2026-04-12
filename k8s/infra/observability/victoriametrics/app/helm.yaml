@@ -1,0 +1,46 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: victoria-metrics-k8s-stack
+spec:
+  interval: 15m
+  ref:
+    tag: 0.72.6
+  url: oci://ghcr.io/victoriametrics/helm-charts/victoria-metrics-k8s-stack
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: victoria-metrics-k8s-stack
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: victoria-metrics-k8s-stack
+  interval: 1h
+  install:
+    crds: CreateReplace
+  upgrade:
+    crds: CreateReplace
+
+  values:
+    installCRDs: true
+    defaultDashboards:
+      enabled: true
+    grafana:
+      enabled: false
+      forceDeployDatasource: true
+      sidecar:
+        datasources:
+          label: grafana_datasource
+          labelValue: "1"
+
+    vmsingle:
+      enabled: true
+      spec:
+        retentionPeriod: "30d"
+        storage:
+          storageClassName: piraeus-replicated
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
