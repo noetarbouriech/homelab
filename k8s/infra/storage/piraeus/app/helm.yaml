@@ -1,0 +1,21 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: piraeus-operator
+spec:
+  interval: 15m
+  ref:
+    tag: 2.10.5
+  url: oci://ghcr.io/piraeusdatastore/piraeus-operator/piraeus
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: piraeus-operator
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: piraeus-operator
+  interval: 1h
+  values:
+    installCRDs: true

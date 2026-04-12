@@ -10,6 +10,9 @@ allowSchedulingOnMasters: true
 cniConfig:
   name: none
 
+patches:
+  - "@./patches/piraeus.yaml"
+
 nodes:
   - hostname: node1
     ipAddress: 10.40.0.11
@@ -29,3 +32,10 @@ nodes:
     installDisk: /dev/nvme0n1
     nameservers:
       - 9.9.9.9
+
+controlPlane:
+  schematic:
+    customization:
+      systemExtensions:
+        officialExtensions:
+          - siderolabs/drbd
