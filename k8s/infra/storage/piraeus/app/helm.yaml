@@ -19,3 +19,7 @@ spec:
   interval: 1h
   values:
     installCRDs: true
+    monitoring:
+      enabled: true
+      dashboard:
+        enabled: true
