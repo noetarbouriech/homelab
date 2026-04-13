@@ -7,6 +7,9 @@ spec:
   ref:
     tag: 11.6.0
   url: oci://ghcr.io/grafana-community/helm-charts/grafana
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: extract
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
