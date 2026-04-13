@@ -8,6 +8,7 @@ spec:
   wait: true
 
   path: ./k8s/infra/observability/victorialogs/collector
+  targetNamespace: observability
   sourceRef:
     kind: GitRepository
     name: flux-system
