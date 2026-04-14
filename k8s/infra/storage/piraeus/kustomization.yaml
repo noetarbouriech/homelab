@@ -5,3 +5,4 @@ resources:
   - namespace.yaml
   - app.ks.yaml
   - config.ks.yaml
+  - monitoring.ks.yaml

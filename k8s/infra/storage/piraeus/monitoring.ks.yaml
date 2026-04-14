@@ -1,0 +1,22 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: piraeus-monitoring
+spec:
+  interval: 10m
+  prune: true
+  wait: true
+
+  path: ./k8s/infra/storage/piraeus/monitoring
+  targetNamespace: piraeus-datastore
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+
+  dependsOn:
+    - name: piraeus
+    - name: cert-manager
+      namespace: cert-manager
+    - name: victoriametrics
+      namespace: observability
