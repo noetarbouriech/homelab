@@ -3,10 +3,12 @@ kind: StorageClass
 metadata:
   name: piraeus-local
 provisioner: linstor.csi.linbit.com
+reclaimPolicy: Retain
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
 parameters:
   linstor.csi.linbit.com/storagePool: main-pool
+  linstor.csi.linbit.com/layerList: drbd storage
   linstor.csi.linbit.com/placementCount: "1"
   linstor.csi.linbit.com/allowRemoteVolumeAccess: "false"
 ---
@@ -15,8 +17,10 @@ kind: StorageClass
 metadata:
   name: piraeus-replicated
 provisioner: linstor.csi.linbit.com
+reclaimPolicy: Retain
 allowVolumeExpansion: true
 volumeBindingMode: WaitForFirstConsumer
 parameters:
   linstor.csi.linbit.com/storagePool: main-pool
+  linstor.csi.linbit.com/layerList: drbd storage
   linstor.csi.linbit.com/placementCount: "2"
