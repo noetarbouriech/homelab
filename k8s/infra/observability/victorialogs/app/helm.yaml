@@ -34,4 +34,4 @@ spec:
         enabled: true
         storageClassName: piraeus-replicated
         accessModes: ["ReadWriteOnce"]
-        size: 40Gi
+        size: 50Gi
