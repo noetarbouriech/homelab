@@ -5,3 +5,4 @@ resources:
   - linstor-cluster.yaml
   - satellite-config.yaml
   - storageclass.yaml
+  - snapshotclass.yaml

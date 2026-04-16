@@ -16,5 +16,7 @@ spec:
 
   dependsOn:
     - name: piraeus
+    - name: snapshot-controller
+      namespace: kube-system
     - name: cert-manager
       namespace: cert-manager
