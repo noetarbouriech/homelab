@@ -1,0 +1,90 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: dynacat
+spec:
+  interval: 15m
+  ref:
+    tag: v0.8.4
+  url: oci://ghcr.io/lukasdietrich/glance-k8s/chart/glance
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: dynacat
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: dynacat
+  interval: 1h
+  values:
+    image:
+      repository: docker.io/panonim/dynacat
+      pullPolicy: Always
+      tag: latest
+
+    httproute:
+      enabled: true
+      hostnames:
+        - home.noe-t.dev
+      parentRefs:
+        - name: cilium-gateway
+          namespace: kube-system
+
+    glance:
+      pages:
+        - name: Startpage
+          width: slim
+          hide-desktop-navigation: true
+          center-vertically: true
+          hide-from-navigation: true
+          columns:
+            - size: full
+              widgets:
+                - type: search
+                  autofocus: true
+
+                - type: extension
+                  url: http://glance-k8s/extension/nodes
+                  allow-potentially-dangerous-html: true
+                  cache: 1s
+
+                - type: extension
+                  url: http://glance-k8s/extension/apps
+                  allow-potentially-dangerous-html: true
+                  cache: 1s
+                  parameters:
+                    show-if: |
+                      namespace != "kube-system" and
+                      ("glance/hide" not in annotations || annotations["glance/hide"] != "true")
+
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: ConfigMap
+              name: dynacat-glance
+            patch: |
+              - op: move
+                from: /data/glance.yml
+                path: /data/dynacat.yml
+
+          - target:
+              kind: Deployment
+            patch: |
+              - op: replace
+                path: /spec/template/spec/containers/0/volumeMounts/0/mountPath
+                value: /app/config/dynacat.yml
+              - op: replace
+                path: /spec/template/spec/containers/0/volumeMounts/0/subPath
+                value: dynacat.yml
+              - op: add
+                path: /spec/template/spec/volumes/-
+                value:
+                  name: cache
+                  emptyDir: {}
+              - op: add
+                path: /spec/template/spec/containers/0/volumeMounts/-
+                value:
+                  name: cache
+                  mountPath: /app/.cache
