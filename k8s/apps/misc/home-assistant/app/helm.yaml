@@ -1,0 +1,86 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: home-assistant
+spec:
+  interval: 15m
+  url: oci://ghcr.io/bjw-s-labs/helm/app-template
+  ref:
+    tag: 5.1.0
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: home-assistant
+spec:
+  interval: 1h
+
+  chartRef:
+    kind: OCIRepository
+    name: home-assistant
+    namespace: iot
+
+  values:
+    controllers:
+      home-assistant:
+        type: statefulset
+
+        initContainers:
+          install-hacs:
+            image:
+              repository: alpine
+              tag: 3.22
+
+            command:
+              - /bin/sh
+              - -ec
+
+            args:
+              - |
+                apk add --no-cache curl unzip
+
+                HACS_VERSION="2.0.5"
+
+                mkdir -p /config/custom_components/hacs
+
+                curl -fsSL \
+                  "https://github.com/hacs/integration/releases/download/${HACS_VERSION}/hacs.zip" \
+                  -o /tmp/hacs.zip
+
+                rm -rf /config/custom_components/hacs/*
+                unzip -q /tmp/hacs.zip -d /config/custom_components/hacs
+
+                test -f /config/custom_components/hacs/manifest.json
+
+                echo "HACS ${HACS_VERSION} installed successfully"
+
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-assistant/home-assistant
+              tag: 2026.8.2
+
+            env:
+              TZ: Europe/Paris
+
+    service:
+      app:
+        controller: home-assistant
+        ports:
+          http:
+            port: 8123
+
+    persistence:
+      config:
+        type: persistentVolumeClaim
+        storageClass: piraeus-replicated
+        accessMode: ReadWriteOnce
+        size: 10Gi
+
+        advancedMounts:
+          home-assistant:
+            install-hacs:
+              - path: /config
+            app:
+              - path: /config
