@@ -1,86 +1,133 @@
 apiVersion: source.toolkit.fluxcd.io/v1
-kind: OCIRepository
+kind: HelmRepository
 metadata:
-  name: home-assistant
+  name: pajikos
+  namespace: iot
 spec:
-  interval: 15m
-  url: oci://ghcr.io/bjw-s-labs/helm/app-template
-  ref:
-    tag: 5.1.0
-
+  interval: 1h
+  url: https://pajikos.github.io/home-assistant-helm-chart/
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: home-assistant
+  namespace: iot
 spec:
   interval: 1h
-
-  chartRef:
-    kind: OCIRepository
-    name: home-assistant
-    namespace: iot
-
+  chart:
+    spec:
+      chart: home-assistant
+      version: "0.3.74" # first version with httpRoute (Gateway API) support is 0.3.65; using latest as of Aug 2026
+      sourceRef:
+        kind: HelmRepository
+        name: pajikos
+        namespace: iot
+      interval: 1h
   values:
-    controllers:
-      home-assistant:
-        type: statefulset
-
-        initContainers:
-          install-hacs:
-            image:
-              repository: alpine
-              tag: 3.22
-
-            command:
-              - /bin/sh
-              - -ec
-
-            args:
-              - |
-                apk add --no-cache curl unzip
-
-                HACS_VERSION="2.0.5"
-
-                mkdir -p /config/custom_components/hacs
-
-                curl -fsSL \
-                  "https://github.com/hacs/integration/releases/download/${HACS_VERSION}/hacs.zip" \
-                  -o /tmp/hacs.zip
-
-                rm -rf /config/custom_components/hacs/*
-                unzip -q /tmp/hacs.zip -d /config/custom_components/hacs
-
-                test -f /config/custom_components/hacs/manifest.json
-
-                echo "HACS ${HACS_VERSION} installed successfully"
-
-        containers:
-          app:
-            image:
-              repository: ghcr.io/home-assistant/home-assistant
-              tag: 2026.8.2
-
-            env:
-              TZ: Europe/Paris
-
+    image:
+      repository: ghcr.io/home-assistant/home-assistant
+      tag: "2026.8.2"
+      pullPolicy: IfNotPresent
+    controller:
+      type: Deployment
+    replicaCount: 1
+    podSecurityContext:
+      runAsUser: 568
+      runAsGroup: 568
+      fsGroup: 568
+      fsGroupChangePolicy: OnRootMismatch
+    env:
+      - name: TZ
+        value: Europe/Paris
     service:
-      app:
-        controller: home-assistant
-        ports:
-          http:
-            port: 8123
-
+      type: ClusterIP
+      port: 8123
+    httpRoute:
+      enabled: true
+      parentRefs:
+        - name: cilium-gateway
+          namespace: kube-system
+          sectionName: https
+      hostnames:
+        - home-assistant.home.noe-t.dev
     persistence:
-      config:
-        type: persistentVolumeClaim
-        storageClass: piraeus-replicated
-        accessMode: ReadWriteOnce
-        size: 10Gi
+      enabled: true
+      size: 10Gi
+      storageClass: "piraeus-replicated"
+    configuration:
+      enabled: true
+      forceInit: true
+      trusted_proxies:
+        - 10.244.0.0/24
+        - 10.244.1.0/24
+        - 10.244.2.0/24
+      templateConfig: |-
+        default_config:
+        {{- if or .Values.ingress.enabled .Values.ingress.external .Values.httpRoute.enabled }}
+        http:
+          use_x_forwarded_for: true
+          trusted_proxies:
+            {{- range .Values.configuration.trusted_proxies }}
+            - {{ . }}
+            {{- end }}
+        {{- end }}
+        frontend:
+          themes: !include_dir_merge_named themes
+        automation: !include automations.yaml
+        script: !include scripts.yaml
+        scene: !include scenes.yaml
+      initScript: |-
+        #!/bin/bash
+        set -e
 
-        advancedMounts:
-          home-assistant:
-            install-hacs:
-              - path: /config
-            app:
-              - path: /config
+        # --- Default chart behavior: create/merge configuration.yaml and required includes ---
+        if [ ! -f /config/configuration.yaml ]; then
+          echo "Configuration file not found, creating a new one"
+          cp /config-templates/configuration.yaml /config/configuration.yaml
+        fi
+
+        forceInit="{{ .Values.configuration.forceInit }}"
+        if [ "$forceInit" = "true" ]; then
+          echo "Force init is enabled, overwriting the configuration file"
+          current_time=$(date +%Y%m%d_%H%M%S)
+          echo "Backup the current configuration file to configuration.yaml.$current_time"
+          cp /config/configuration.yaml /config/configuration.yaml.$current_time
+
+          echo "Cleaning up - keeping only 10 most recent backups..."
+          ls -t /config/configuration.yaml.* 2>/dev/null | tail -n +11 | xargs -r rm
+
+          if [[ ! -s /config/configuration.yaml ]]; then
+            cat /config-templates/configuration.yaml > /config/configuration.yaml
+          else
+            yq eval-all --inplace 'select(fileIndex == 0) *d select(fileIndex == 1)' /config/configuration.yaml /config-templates/configuration.yaml
+          fi
+        fi
+
+        if [ ! -f /config/automations.yaml ]; then
+          echo "Automations file not found, creating a new one"
+          touch /config/automations.yaml
+          echo "[]" >> /config/automations.yaml
+        fi
+
+        if [ ! -f /config/scripts.yaml ]; then
+          echo "Scripts file not found, creating a new one"
+          touch /config/scripts.yaml
+        fi
+
+        if [ ! -f /config/scenes.yaml ]; then
+          echo "Scenes file not found, creating a new one"
+          touch /config/scenes.yaml
+        fi
+
+        # --- Custom addition: install HACS ---
+        HACS_VERSION="2.0.5"
+        if [ ! -f /config/custom_components/hacs/manifest.json ]; then
+          mkdir -p /config/custom_components/hacs
+          wget -O /tmp/hacs.zip \
+            "https://github.com/hacs/integration/releases/download/${HACS_VERSION}/hacs.zip"
+          unzip -o /tmp/hacs.zip \
+            -d /config/custom_components/hacs
+          rm -f /tmp/hacs.zip
+          chown -R 568:568 /config/custom_components/hacs
+          test -f /config/custom_components/hacs/manifest.json
+        fi
