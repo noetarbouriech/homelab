@@ -1,0 +1,107 @@
+# Matter Server (matter.js) for Home Assistant.
+#
+# This is the Matter *controller* for HA's Matter integration — the equivalent of
+# the HA-OS "Matter Server" app. HA core is only a thin client; the actual Matter
+# fabric (commissioning, attributes, OTA) lives in this separate process, and the
+# HA Matter integration talks to it over WebSocket at ws://10.40.0.11:5580/ws.
+#
+# Why it must look like this:
+#   - hostNetwork + node1 pin (same node as the otbr deployment): Matter traffic
+#     to Thread devices is plain IPv6 carried over the LAN; the container must see
+#     the border router's route announcements (RA/RIO on the real uplink enp1s0)
+#     to reach the Thread mesh, exactly like the upstream docker guidance
+#     (--network=host, --primary-interface).
+#   - Thread transport comes from the otbr deployment; commissioning of devices is
+#     done by the user's phone (HA Companion app) over BLE, NOT from this host.
+#   - Unprivileged image user (uid 1000) -> fsGroup 1000 makes the PVC writable.
+#
+# Reference: https://github.com/matter-js/matterjs-server/blob/main/docs/docker.md
+# (official "as-is, unsupported" warning for container installs applies here.)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matter-server
+  labels:
+    app: matter-server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: matter-server
+  template:
+    metadata:
+      labels:
+        app: matter-server
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node1
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: matter-server
+          image: ghcr.io/matter-js/matterjs-server:stable
+          imagePullPolicy: IfNotPresent
+          env:
+            # Uplink used for mDNS + Matter multicast (same as otbr).
+            - name: PRIMARY_INTERFACE
+              value: "enp1s0"
+            - name: PORT
+              value: "5580"
+            - name: STORAGE_PATH
+              value: "/data"
+            - name: LOG_LEVEL
+              value: "info"
+            # Cap V8 heap below the container limit (~75-80% of memory limit).
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=768"
+            - name: TZ
+              value: "Europe/Paris"
+          ports:
+            - name: ws
+              containerPort: 5580
+          readinessProbe:
+            tcpSocket:
+              port: ws
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: ws
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1536Mi
+          volumeMounts:
+            - name: matter-data
+              mountPath: /data
+      volumes:
+        # Fabric state (node IDs, certificates). Must survive restarts or every
+        # commissioned device would need to be re-added.
+        - name: matter-data
+          persistentVolumeClaim:
+            claimName: matter-server-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matter-server-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: piraeus-local
+  resources:
+    requests:
+      storage: 1Gi

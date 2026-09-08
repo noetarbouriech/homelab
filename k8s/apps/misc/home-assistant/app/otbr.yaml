@@ -1,0 +1,127 @@
+# OpenThread Border Router (OTBR) for the SONOFF Dongle-M (Thread RCP) at 10.40.0.102.
+#
+# Replicates what the HA-OS "OpenThread Border Router" add-on does, as a container:
+#   - socat bridges the dongle's network serial (10.40.0.102:6638) to a local pty
+#     which otbr-agent consumes as an RCP radio (spinel+hdlc+uart).
+#   - otbr-agent is the actual Thread border router: it owns the Thread mesh,
+#     bridges it to the LAN (wpan0 <-> backbone iface) and exposes:
+#       * REST API on :8081  -> what Home Assistant's Thread integration talks to
+#       * mDNS announcements -> lets HA auto-discover the border router
+#   - The dongle in "Thread RCP Mode" is only a radio and can never connect to
+#     HA directly; this deployment is what makes it usable.
+#
+# Requirements:
+#   - Runs with hostNetwork on node1 so IPv6 RA/RIO routing and mDNS multicast
+#     work on the real uplink (a pod veth cannot carry this traffic).
+#   - privileged + /dev/net/tun so otbr-agent can create its wpan0 TUN device.
+#   - SONOFF guidance for this dongle: TCP :6638, baud 115200, NO hardware flow
+#     control (OTBR_RCP_ADDITIONAL_ARGS must be empty; the image default appends
+#     &uart-flow-control).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otbr
+  labels:
+    app: otbr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: otbr
+  template:
+    metadata:
+      labels:
+        app: otbr
+    spec:
+      # Thread needs the RCP + border router pinned to one physical uplink;
+      # everything (otbr, later matter-server, HA) then lives on the 10.40.0.0/24 LAN.
+      nodeSelector:
+        kubernetes.io/hostname: node1
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: otbr
+          image: docker.io/bnutzer/otbr-tcp:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+          env:
+            - name: RCP_HOST
+              value: "10.40.0.102"
+            - name: RCP_PORT
+              value: "6638"
+            - name: RCP_BAUDRATE
+              value: "115200"
+            # Unset image default "&uart-flow-control": SONOFF OTBR docs require
+            # hardware flow control OFF for the Dongle-M.
+            - name: OTBR_RCP_ADDITIONAL_ARGS
+              value: ""
+            # Backbone interface on node1 that bridges Thread <-> LAN.
+            # Preflight (talosctl get links on node1): the physical uplink is
+            # enp1s0 (bond0/enp3s0 are down; there is no eth0 on Talos).
+            - name: OTBR_BACKBONE_IF
+              value: "enp1s0"
+            - name: OTBR_REST_LISTEN_ADDRESS
+              value: "0.0.0.0"
+            - name: OTBR_REST_LISTEN_PORT
+              value: "8081"
+            - name: OTBR_SERVICEBASENAME
+              value: "homelab-otbr"
+            - name: TZ
+              value: "Europe/Paris"
+          ports:
+            - name: rest
+              containerPort: 8081
+            - name: web
+              containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: rest
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: rest
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: thread-state
+              mountPath: /var/lib/thread
+            - name: dev-tun
+              mountPath: /dev/net/tun
+      volumes:
+        # TUN device for wpan0. If /dev/net/tun does not exist on node1, load the
+        # "tun" kernel module via the Talos machine config (talos/talconfig.yaml).
+        - name: dev-tun
+          hostPath:
+            path: /dev/net/tun
+            type: CharDevice
+        # Persist the Thread dataset + router identity so the mesh survives
+        # pod restarts (an emptyDir would force every device to re-pair).
+        - name: thread-state
+          persistentVolumeClaim:
+            claimName: otbr-thread-state
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: otbr-thread-state
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: piraeus-local
+  resources:
+    requests:
+      storage: 1Gi

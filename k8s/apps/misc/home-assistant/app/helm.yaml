@@ -142,3 +142,16 @@ spec:
           chown -R 568:568 /config/custom_components/hacs
           test -f /config/custom_components/hacs/manifest.json
         fi
+
+        # --- Custom addition: install Delta Dore Tydom custom component (pinned) ---
+        TYDOM_VERSION="0.31"
+        if [ ! -f /config/custom_components/deltadore_tydom/manifest.json ]; then
+          mkdir -p /config/custom_components/deltadore_tydom
+          wget -O /tmp/deltadore_tydom.zip \
+            "https://github.com/CyrilP/hass-deltadore-tydom-component/releases/download/v${TYDOM_VERSION}/deltadore_tydom.zip"
+          unzip -o /tmp/deltadore_tydom.zip \
+            -d /config/custom_components/deltadore_tydom
+          rm -f /tmp/deltadore_tydom.zip
+          chown -R 568:568 /config/custom_components/deltadore_tydom
+          test -f /config/custom_components/deltadore_tydom/manifest.json
+        fi
