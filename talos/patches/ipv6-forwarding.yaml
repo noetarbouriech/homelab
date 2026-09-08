@@ -1,0 +1,9 @@
+machine:
+  sysctls:
+    # Required for Matter/Thread commissioning: HA (hostNetwork on this node)
+    # must be able to reach Thread devices through the border router. The
+    # kernel does not forward between interfaces while conf/all/forwarding=0,
+    # even with per-interface forwarding enabled, causing "Checking
+    # connectivity to Thread network" to fail with no Matter Server activity.
+    # Reference: community fix for HA-in-Docker + OTBR container setups.
+    net.ipv6.conf.all.forwarding: "1"

@@ -12,6 +12,7 @@ cniConfig:
 
 patches:
   - "@./patches/piraeus.yaml"
+  - "@./patches/ipv6-forwarding.yaml"
 
 nodes:
   - hostname: node1
