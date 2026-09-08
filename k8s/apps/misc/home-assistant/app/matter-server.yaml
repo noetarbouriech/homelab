@@ -61,6 +61,10 @@ spec:
               value: "/data"
             - name: LOG_LEVEL
               value: "info"
+            # Let the HA Companion app act as a Bluetooth proxy so the Matter
+            # Server can commission devices (BLE handshake) without local BT.
+            - name: BLE_PROXY
+              value: "true"
             # Cap V8 heap below the container limit (~75-80% of memory limit).
             - name: NODE_OPTIONS
               value: "--max-old-space-size=768"
