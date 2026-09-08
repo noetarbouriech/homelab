@@ -76,6 +76,12 @@ spec:
         - 10.40.0.0/24
       templateConfig: |-
         default_config:
+        logger:
+          default: warning
+          logs:
+            homeassistant.components.matter: debug
+            homeassistant.components.thread: debug
+            python_otbr_api: debug
         homeassistant:
           auth_providers:
             - type: homeassistant
