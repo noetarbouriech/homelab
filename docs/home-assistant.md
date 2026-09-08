@@ -51,16 +51,30 @@ Create in the SM project referenced by the `bitwarden-secretsmanager` ClusterSec
 The `ExternalSecret tydom-credentials` in namespace `iot` then syncs a secret with keys
 `email` / `password`. It reports NotReady until the items exist.
 
-## First-time HA config entries (one-time, done in the HA UI)
+## HA config entries — created by the ha-bootstrap Job (no UI, no tokens)
 
-1. **Thread** — Settings > Devices & services > Add > OpenThread Border Router / Thread:
-   URL `http://otbr:8081`. HA forms a `ha-thread-*` network (check
-   Settings > Thread; border router state should leave "disabled" and become leader).
-2. **Matter** — Add integration > Matter; connection method: *already running in a
-   custom container*, then URL `ws://matter-server:5580/ws`.
-3. **Delta Dore Tydom** — Add integration > Delta Dore Tydom: host `10.40.0.101`,
-   MAC `001A250A0A63`, Delta Dore email/password (Cloud mode) from the Bitwarden
-   entries above; default refresh interval is fine.
+The `ha-bootstrap` Job (namespace `iot`) creates all three config entries via HA's
+REST config-flow API. Authentication is passwordless: HA runs the built-in
+`trusted_networks` auth provider trusting the pod network (`10.244.0.0/22`,
+`allow_bypass_login`), and the Job runs as a normal pod. Node IPs are deliberately
+NOT trusted — they fall inside `http.trusted_proxies` (10.40.0.0/24) and the
+provider refuses proxy-range addresses.
+
+Entries created (idempotent — existing ones are skipped):
+
+1. **Thread** (integration entry; border router info comes from mDNS discovery of
+   the otbr deployment — Settings > Thread shows `ha-thread-*`).
+2. **Matter** — server URL `ws://matter-server:5580/ws`.
+3. **Delta Dore Tydom** — host `10.40.0.101`, MAC `001A250A0A63` (uppercase: the
+   Delta Dore cloud API matches the MAC case-sensitively), Cloud-mode email/password
+   from the `tydom-credentials` ExternalSecret.
+
+Re-run after a HA PVC wipe or to repair entries:
+
+```sh
+kubectl -n iot delete job ha-bootstrap
+kubectl -n iot create job --from=job/ha-bootstrap ha-bootstrap-rerun
+```
 
 Then, to add IKEA Matter-over-Thread devices: in the HA Companion app, Settings >
 Thread > "Send credentials to phone" (so the phone can hand the Thread network
@@ -71,8 +85,8 @@ joins `ha-thread-*` and appears in HA.
 ## Operations & troubleshooting
 
 - Reconcile/deploy: commit + push, then `flux reconcile kustomization home-assistant -n iot`.
-- OTBR health from the HA pod: `curl http://otbr:8081/node/state`
-  (expect `"leader"`/`"router"` once HA formed the network; `"disabled"` before that).
+- OTBR health: `curl http://otbr:8081/node/state` from a cluster pod
+  (expect `"leader"` once HA formed the network; `"disabled"` before that).
   RCP link check: `kubectl -n iot logs deploy/otbr | grep -i "co-processor"`.
 - Matter server health: `curl -I http://matter-server:5580/` (HTTP 200).
 - The names resolve only inside the cluster (HA is `ClusterFirstWithHostNet`); for a
