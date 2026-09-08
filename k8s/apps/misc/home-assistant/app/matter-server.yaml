@@ -49,9 +49,12 @@ spec:
           image: ghcr.io/matter-js/matterjs-server:stable
           imagePullPolicy: IfNotPresent
           env:
-            # Uplink used for mDNS + Matter multicast (same as otbr).
+            # Uplink used for mDNS + Matter multicast. For commissioning
+            # Thread devices we need discovery to travel into the mesh, so use
+            # the OTBR's wpan0 interface (hostNetwork on node1 sees it) instead
+            # of the ethernet uplink.
             - name: PRIMARY_INTERFACE
-              value: "enp1s0"
+              value: "wpan0"
             - name: PORT
               value: "5580"
             - name: STORAGE_PATH
