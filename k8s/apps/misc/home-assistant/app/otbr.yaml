@@ -125,3 +125,20 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+# Headless Service so HA (and anything in the cluster) can reach the OTBR REST
+# API by DNS name instead of a node IP: http://otbr:8081 (full:
+# http://otbr.iot.svc.cluster.local:8081). Headless -> resolves straight to the
+# pod's LAN address (the node, hostNetwork); no ClusterIP/kube-proxy involved.
+apiVersion: v1
+kind: Service
+metadata:
+  name: otbr
+spec:
+  clusterIP: None
+  selector:
+    app: otbr
+  ports:
+    - name: rest
+      port: 8081
+      targetPort: 8081

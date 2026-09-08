@@ -3,7 +3,8 @@
 # This is the Matter *controller* for HA's Matter integration — the equivalent of
 # the HA-OS "Matter Server" app. HA core is only a thin client; the actual Matter
 # fabric (commissioning, attributes, OTA) lives in this separate process, and the
-# HA Matter integration talks to it over WebSocket at ws://10.40.0.11:5580/ws.
+# HA Matter integration talks to it over WebSocket at ws://matter-server:5580/ws
+# (headless Service in namespace iot — no node IP involved).
 #
 # Why it must look like this:
 #   - hostNetwork + node1 pin (same node as the otbr deployment): Matter traffic
@@ -105,3 +106,20 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+# Headless Service so HA can reach the Matter server by DNS name instead of a
+# node IP: ws://matter-server:5580/ws (full:
+# ws://matter-server.iot.svc.cluster.local:5580/ws). Headless -> resolves
+# straight to the pod's LAN address (the node, hostNetwork).
+apiVersion: v1
+kind: Service
+metadata:
+  name: matter-server
+spec:
+  clusterIP: None
+  selector:
+    app: matter-server
+  ports:
+    - name: ws
+      port: 5580
+      targetPort: 5580
