@@ -4,3 +4,4 @@ resources:
   - helm.yaml
   - otbr.yaml
   - matter-server.yaml
+  - tydom-credentials.yaml
