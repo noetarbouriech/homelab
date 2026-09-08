@@ -76,6 +76,15 @@ spec:
         - 10.40.0.0/24
       templateConfig: |-
         default_config:
+        homeassistant:
+          auth_providers:
+            - type: homeassistant
+            - type: trusted_networks
+              trusted_networks:
+                - 10.40.0.11/32
+                - 10.40.0.12/32
+                - 10.40.0.13/32
+              allow_bypass_login: true
         http:
           use_x_forwarded_for: true
           trusted_proxies:

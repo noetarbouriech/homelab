@@ -1,0 +1,221 @@
+# HA bootstrap script — drives config flows for the Thread, Matter and
+# Delta Dore Tydom integrations over Home Assistant's REST API.
+#
+# Authentication: the homeassistant.auth_providers "trusted_networks"
+# provider (allow_bypass_login) in the HA configuration template lets a client
+# originating from a cluster node IP (this Job runs hostNetwork on node1) log
+# in with no credentials. No long-lived token is ever created.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ha-bootstrap-script
+data:
+  main.py: |-
+        #!/usr/bin/env python3
+        """Idempotent HA integration bootstrap via the REST API."""
+        import json
+        import os
+        import sys
+        import time
+        import urllib.error
+        import urllib.parse
+        import urllib.request
+
+        HA = os.environ.get("HA_URL", "http://home-assistant:8123").rstrip("/")
+        CLIENT_ID = os.environ.get("CLIENT_ID", "https://home-assistant.home.noe-t.dev/")
+        REDIRECT_URI = CLIENT_ID.rstrip("/") + "/auth/callback"
+        TYDOM_HOST = os.environ.get("TYDOM_HOST", "10.40.0.101")
+        TYDOM_MAC = os.environ.get("TYDOM_MAC", "001a250a0a63")
+        MATTER_URL = os.environ.get("MATTER_URL", "ws://matter-server:5580/ws")
+        CRED_DIR = os.environ.get("CRED_DIR", "/creds")
+
+        def _read(path):
+            with open(path) as fh:
+                return fh.read().strip()
+
+        def http(method, path, payload=None, token=None, form=False, timeout=15):
+            body = None
+            headers = {"User-Agent": "ha-bootstrap/1.0"}
+            if form and payload is not None:
+                body = urllib.parse.urlencode(payload).encode()
+                headers["Content-Type"] = "application/x-www-form-urlencoded"
+            elif payload is not None:
+                body = json.dumps(payload).encode()
+                headers["Content-Type"] = "application/json"
+            if token:
+                headers["Authorization"] = "Bearer " + token
+            req = urllib.request.Request(HA + path, data=body, headers=headers, method=method)
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    raw = resp.read()
+                    return resp.status, json.loads(raw) if raw else {}
+            except urllib.error.HTTPError as err:
+                raw = err.read()
+                try:
+                    parsed = json.loads(raw)
+                except Exception:
+                    parsed = raw.decode(errors="replace")
+                raise RuntimeError(f"HTTP {err.code} {method} {path}: {parsed}")
+
+        def wait_for_ha():
+            for _ in range(120):
+                try:
+                    status, _ = http("GET", "/auth/providers")
+                    if status == 200:
+                        return
+                except Exception as exc:
+                    print("waiting for HA:", exc)
+                time.sleep(5)
+            raise RuntimeError("HA did not become reachable in time")
+
+        def login():
+            """Log in via the trusted_networks provider; return access token."""
+            _, providers = http("GET", "/auth/providers")
+            types = [p.get("type") for p in providers.get("providers", [])]
+            print("auth providers:", types)
+            if "trusted_networks" not in types:
+                raise RuntimeError("trusted_networks provider is not enabled on HA")
+
+            payload = {
+                "client_id": CLIENT_ID,
+                "handler": ["trusted_networks", None],
+                "redirect_uri": REDIRECT_URI,
+                "type": "authorize",
+            }
+            flow = http("POST", "/auth/login_flow", payload)[1]
+            code = None
+            for _ in range(6):
+                ftype = flow.get("type")
+                if ftype == "create_entry":
+                    code = flow.get("result")
+                    break
+                if ftype == "abort":
+                    raise RuntimeError("login flow aborted: " + json.dumps(flow))
+                if ftype == "form":
+                    step = flow.get("step_id")
+                    step_payload = {}
+                    for field in flow.get("data_schema", []) or []:
+                        name = field.get("name")
+                        if field.get("required") and name == "user":
+                            options = [
+                                o.get("value")
+                                for o in (field.get("options") or [])
+                                if o.get("value") is not None
+                            ]
+                            if len(options) == 1:
+                                step_payload[name] = options[0]
+                            else:
+                                uid = os.environ.get("HA_BOOTSTRAP_USER_ID", "")
+                                if uid in options:
+                                    step_payload[name] = uid
+                                else:
+                                    raise RuntimeError(
+                                        "multiple HA users; set HA_BOOTSTRAP_USER_ID to one of "
+                                        + ",".join(options)
+                                    )
+                    flow_id = flow.get("flow_id")
+                    print("login step", step, "->", step_payload)
+                    flow = http(
+                        "POST", f"/auth/login_flow/{flow_id}", step_payload
+                    )[1]
+                    continue
+                raise RuntimeError("unexpected login flow result: " + json.dumps(flow))
+
+            if not code:
+                raise RuntimeError("no auth code from login flow")
+
+            form = {
+                "grant_type": "authorization_code",
+                "code": code,
+                "client_id": CLIENT_ID,
+            }
+            try:
+                _, tokens = http("POST", "/auth/token", form, form=True)
+            except RuntimeError as exc:
+                if "invalid_client" in str(exc):
+                    form["client_secret"] = ""
+                    _, tokens = http("POST", "/auth/token", form, form=True)
+                else:
+                    raise
+            return tokens.get("access_token")
+
+        def entries(token, domain):
+            _, data = http(
+                "GET",
+                f"/api/config/config_entries/entry?domain={urllib.parse.quote(domain)}",
+                token=token,
+            )
+            return data if isinstance(data, list) else []
+
+        def drive_flow(token, handler, payloads):
+            """payloads: ordered list of step payloads to submit."""
+            _, flow = http("POST", "/api/config/config_entries/flow", {"handler": handler}, token=token)
+            step_no = 0
+            for _ in range(12):
+                ftype = flow.get("type")
+                if ftype == "create_entry":
+                    print(f"[{handler}] created entry: {flow.get('title')} ({flow.get('result',{}).get('entry_id','')})")
+                    return
+                if ftype == "abort":
+                    reason = flow.get("reason")
+                    if reason == "already_configured":
+                        print(f"[{handler}] already configured -> abort")
+                        return
+                    raise RuntimeError(f"[{handler}] flow aborted: {reason}")
+                if ftype == "form":
+                    if step_no >= len(payloads):
+                        raise RuntimeError(
+                            f"[{handler}] unexpected extra step '{flow.get('step_id')}': {json.dumps(flow)}"
+                        )
+                    flow_id = flow.get("flow_id")
+                    step_payload = payloads[step_no]
+                    step_no += 1
+                    print(f"[{handler}] step '{flow.get('step_id')}' -> {list(step_payload)}")
+                    _, flow = http(
+                        "POST", f"/api/config/config_entries/flow/{flow_id}",
+                        step_payload, token=token,
+                    )
+                    continue
+                raise RuntimeError(f"[{handler}] unexpected flow result: {json.dumps(flow)}")
+            raise RuntimeError(f"[{handler}] flow did not finish")
+
+        def main():
+            wait_for_ha()
+            token = login()
+            print("authenticated as trusted user")
+
+            # 1) Thread: the config flow creates the entry directly (no form).
+            if not entries(token, "thread"):
+                drive_flow(token, "thread", [])
+            else:
+                print("[thread] entry already present")
+
+            # 2) Matter: single "manual" step with the server URL.
+            if not entries(token, "matter"):
+                drive_flow(token, "matter", [{"url": MATTER_URL}])
+            else:
+                print("[matter] entry already present")
+
+            # 3) Delta Dore Tydom (Cloud mode): menu step then credentials.
+            if not entries(token, "deltadore_tydom"):
+                creds = {
+                    "host": TYDOM_HOST,
+                    "mac": TYDOM_MAC,
+                    "email": _read(os.path.join(CRED_DIR, "email")),
+                    "password": _read(os.path.join(CRED_DIR, "password")),
+                    "refresh_interval": "30",
+                }
+                drive_flow(token, "deltadore_tydom", [{"config_mode": "cloud"}, creds])
+            else:
+                print("[deltadore_tydom] entry already present")
+
+            missing = [
+                d
+                for d in ("thread", "matter", "deltadore_tydom")
+                if not entries(token, d)
+            ]
+            print("remaining missing entries:", missing)
+            sys.exit(1 if missing else 0)
+
+        if __name__ == "__main__":
+            main()

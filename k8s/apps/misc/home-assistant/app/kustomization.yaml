@@ -5,3 +5,5 @@ resources:
   - otbr.yaml
   - matter-server.yaml
   - tydom-credentials.yaml
+  - bootstrap-script.yaml
+  - bootstrap.yaml

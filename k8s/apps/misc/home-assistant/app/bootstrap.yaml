@@ -1,0 +1,67 @@
+# One-shot bootstrap Job: creates the HA config entries for the Thread,
+# Matter and Delta Dore Tydom integrations via HA's REST config-flow API.
+#
+# Runs hostNetwork on node1 so HA sees the request from 10.40.0.11 and the
+# "trusted_networks" auth provider (allow_bypass_login) logs it in with no
+# credentials. Idempotent: entries that already exist are skipped.
+#
+# Re-run (after a HA PVC wipe, or to fix entries):
+#   kubectl -n iot delete job ha-bootstrap
+#   kubectl -n iot create job --from=job/ha-bootstrap ha-bootstrap-rerun
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ha-bootstrap
+  labels:
+    app: ha-bootstrap
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: ha-bootstrap
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node1
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      restartPolicy: Never
+      containers:
+        - name: bootstrap
+          image: python:3.12-slim
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/opt/bootstrap/main.py"]
+          env:
+            - name: HA_URL
+              value: "http://home-assistant:8123"
+            - name: CLIENT_ID
+              value: "https://home-assistant.home.noe-t.dev/"
+            - name: TYDOM_HOST
+              value: "10.40.0.101"
+            - name: TYDOM_MAC
+              value: "001a250a0a63"
+            - name: MATTER_URL
+              value: "ws://matter-server:5580/ws"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: script
+              mountPath: /opt/bootstrap
+            - name: creds
+              mountPath: /creds
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: ha-bootstrap-script
+        - name: creds
+          secret:
+            secretName: tydom-credentials
+            defaultMode: 0400
