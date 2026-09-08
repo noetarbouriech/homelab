@@ -205,7 +205,7 @@ data:
                     "password": _read(os.path.join(CRED_DIR, "password")),
                     "refresh_interval": "30",
                 }
-                drive_flow(token, "deltadore_tydom", [{"config_mode": "cloud"}, creds])
+                drive_flow(token, "deltadore_tydom", [{"config_mode": "tydom_cloud_account"}, creds])
             else:
                 print("[deltadore_tydom] entry already present")
 
