@@ -79,11 +79,13 @@ spec:
         homeassistant:
           auth_providers:
             - type: homeassistant
+            # Trusted for tooling (ha-bootstrap Job). Uses the POD network
+            # (10.244.0.0/22), NOT node IPs: the trusted_networks provider
+            # refuses addresses that are also in http.trusted_proxies
+            # (10.40.0.0/24 covers every node IP).
             - type: trusted_networks
               trusted_networks:
-                - 10.40.0.11/32
-                - 10.40.0.12/32
-                - 10.40.0.13/32
+                - 10.244.0.0/22
               allow_bypass_login: true
         http:
           use_x_forwarded_for: true

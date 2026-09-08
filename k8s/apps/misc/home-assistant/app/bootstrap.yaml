@@ -1,9 +1,11 @@
 # One-shot bootstrap Job: creates the HA config entries for the Thread,
 # Matter and Delta Dore Tydom integrations via HA's REST config-flow API.
 #
-# Runs hostNetwork on node1 so HA sees the request from 10.40.0.11 and the
-# "trusted_networks" auth provider (allow_bypass_login) logs it in with no
-# credentials. Idempotent: entries that already exist are skipped.
+# Runs as a normal (non-hostNetwork) pod so its source IP is in the pod
+# network (10.244.0.0/22), which the HA "trusted_networks" auth provider
+# (allow_bypass_login) accepts. Node IPs can NOT be used: they fall inside
+# http.trusted_proxies (10.40.0.0/24) and the provider refuses proxy-range
+# addresses. Idempotent: entries that already exist are skipped.
 #
 # Re-run (after a HA PVC wipe, or to fix entries):
 #   kubectl -n iot delete job ha-bootstrap
@@ -23,10 +25,6 @@ spec:
       labels:
         app: ha-bootstrap
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: node1
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       restartPolicy: Never
       containers:
         - name: bootstrap
