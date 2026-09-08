@@ -25,7 +25,7 @@ data:
         CLIENT_ID = os.environ.get("CLIENT_ID", "https://home-assistant.home.noe-t.dev/")
         REDIRECT_URI = CLIENT_ID.rstrip("/") + "/auth/callback"
         TYDOM_HOST = os.environ.get("TYDOM_HOST", "10.40.0.101")
-        TYDOM_MAC = os.environ.get("TYDOM_MAC", "001a250a0a63")
+        TYDOM_MAC = os.environ.get("TYDOM_MAC", "001A250A0A63")
         MATTER_URL = os.environ.get("MATTER_URL", "ws://matter-server:5580/ws")
         CRED_DIR = os.environ.get("CRED_DIR", "/creds")
 

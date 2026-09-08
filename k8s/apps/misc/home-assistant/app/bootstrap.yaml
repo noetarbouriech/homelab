@@ -39,7 +39,7 @@ spec:
             - name: TYDOM_HOST
               value: "10.40.0.101"
             - name: TYDOM_MAC
-              value: "001a250a0a63"
+              value: "001A250A0A63"
             - name: MATTER_URL
               value: "ws://matter-server:5580/ws"
           resources:

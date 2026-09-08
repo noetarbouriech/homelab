@@ -32,7 +32,7 @@ Device commissioning for Matter-over-Thread (IKEA TRETAKT/VALLHORN/…) is done 
 
 | Item | Value |
 | --- | --- |
-| Tydom gateway IP / MAC | `10.40.0.101` / `001a250a0a63` (12 hex, no separators) |
+| Tydom gateway IP / MAC | `10.40.0.101` / `001A250A0A63` (12 hex, no separators) |
 | Dongle-M IP / MAC | `10.40.0.102` / `1c:c3:ab:12:69:cf` |
 | Dongle mode | Thread RCP (EFR32MG24, firmware `SL-OPENTHREAD/2.4.5.0…`) |
 | OTBR REST | `http://otbr:8081` (health: `GET /node/state`) |
@@ -59,7 +59,7 @@ The `ExternalSecret tydom-credentials` in namespace `iot` then syncs a secret wi
 2. **Matter** — Add integration > Matter; connection method: *already running in a
    custom container*, then URL `ws://matter-server:5580/ws`.
 3. **Delta Dore Tydom** — Add integration > Delta Dore Tydom: host `10.40.0.101`,
-   MAC `001a250a0a63`, Delta Dore email/password (Cloud mode) from the Bitwarden
+   MAC `001A250A0A63`, Delta Dore email/password (Cloud mode) from the Bitwarden
    entries above; default refresh interval is fine.
 
 Then, to add IKEA Matter-over-Thread devices: in the HA Companion app, Settings >
