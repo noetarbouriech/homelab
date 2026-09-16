@@ -1,0 +1,143 @@
+# Crafty is both the panel and the runtime for the game servers: each server is
+# a child process of this pod (no Docker socket, which is why it works on
+# Talos). Consequences that shape this manifest:
+#   * SQLite + a session lock mean replicas must stay 1.
+#   * SIGTERM stops every game server, hence the long grace period.
+#   * A liveness probe would restart the pod and kill all servers on a web
+#     hiccup, so there deliberately is none.
+#   * The image's final USER is root, so runAsNonRoot alone would fail to
+#     start; the explicit runAsUser/runAsGroup below are required.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: crafty
+  labels:
+    app.kubernetes.io/name: crafty
+    app.kubernetes.io/instance: crafty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: crafty
+      app.kubernetes.io/instance: crafty
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: crafty
+        app.kubernetes.io/instance: crafty
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 180
+      securityContext:
+        fsGroup: 0
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: crafty
+          image: registry.gitlab.com/crafty-controller/crafty-4:4.11.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 0
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: TZ
+              value: Europe/Paris
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          # Every server's JVM heap has to fit under this limit: the pod is one
+          # cgroup, so an OOM here kills the panel and all game servers at once.
+          # No CPU limit on purpose (do not throttle tick loops).
+          resources:
+            requests:
+              cpu: "1"
+              memory: 6Gi
+            limits:
+              memory: 12Gi
+          startupProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: config
+              mountPath: /crafty/app/config
+            - name: servers
+              mountPath: /crafty/servers
+            - name: backups
+              mountPath: /crafty/backups
+            - name: logs
+              mountPath: /crafty/logs
+            # Shadows only this subdirectory of the config volume; the mounted
+            # files are named exactly what Crafty looks for, so it never
+            # regenerates a self-signed pair.
+            - name: panel-cert
+              mountPath: /crafty/app/config/web/certs
+              readOnly: true
+      volumes:
+        - name: panel-cert
+          secret:
+            secretName: crafty-panel-tls
+            defaultMode: 0440
+            items:
+              - key: tls.crt
+                path: commander.cert.pem
+              - key: tls.key
+                path: commander.key.pem
+  # Claims are created by the StatefulSet controller, so they are in nobody's
+  # Git/Helm inventory and no prune can ever delete a world.
+  volumeClaimTemplates:
+    - metadata:
+        name: config
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: piraeus-replicated
+        resources:
+          requests:
+            storage: 2Gi
+    - metadata:
+        name: servers
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: piraeus-replicated
+        resources:
+          requests:
+            storage: 40Gi
+    - metadata:
+        name: backups
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: piraeus-replicated
+        resources:
+          requests:
+            storage: 30Gi
+    - metadata:
+        name: logs
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: piraeus-replicated
+        resources:
+          requests:
+            storage: 2Gi

@@ -1,0 +1,19 @@
+# Crafty's web UI is HTTPS-only (no HTTP listener since 4.3.1) and it reads its
+# certificate from <config_dir>/web/certs/commander.{cert,key}.pem at startup,
+# skipping self-signed generation when both files already exist. So we mount a
+# real certificate there instead of a proxy in front of it.
+#
+# mc.home.noe-t.dev already resolves through the *.home.noe-t.dev wildcard to
+# the Cilium Gateway, so no DNS record is needed for this name. The DNS-01
+# challenge is solved by the existing Porkbun webhook issuer.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: crafty-panel
+spec:
+  secretName: crafty-panel-tls
+  issuerRef:
+    name: letsencrypt-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - mc.home.noe-t.dev
