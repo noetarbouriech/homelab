@@ -3,6 +3,9 @@ kind: Kustomization
 resources:
   - l2-policy.yaml
   - pool.yaml
-  - https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+  # Cilium >= 1.20 requires Gateway API >= v1.6.1 (TLSRoute promoted to v1
+  # in v1.6.1). v1.6.2 keeps BackendTLSPolicy at v1 and adds TCPRoute,
+  # UDPRoute, TLSRoute and ListenerSet to the standard channel.
+  - https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.2/standard-install.yaml
   - gatewayclass.yaml
   - gateway.yaml
