@@ -16,11 +16,15 @@ spec:
   chart:
     spec:
       chart: cilium
-      version: 1.19.8
+      version: 1.20.2
       sourceRef:
         kind: HelmRepository
         name: cilium
   values:
+    # Cilium's upgrade guide asks for the minor version originally installed in
+    # the cluster so the datapath is not disrupted by a minor upgrade.
+    upgradeCompatibility: "1.19"
+
     cluster:
       name: homelab-cluster
 
