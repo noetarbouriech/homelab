@@ -3,5 +3,3 @@ kind: Kustomization
 resources:
   - service.yaml
   - statefulset.yaml
-  - httproute.yaml
-  - backendtlspolicy.yaml

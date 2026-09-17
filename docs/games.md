@@ -7,7 +7,7 @@ and never appear in this repo.
 
 | Item | Value |
 | --- | --- |
-| Panel | `https://mc.home.noe-t.dev` through the Gateway |
+| Panel | `https://10.40.1.5:8443` (self-signed, browser warning) |
 | Players | `<server>.home.noe-t.dev` (port 25565) |
 | Workload | StatefulSet `crafty` (1 replica), Deployment `mc-router` |
 | PVCs | `config`, `servers`, `backups`, `logs` |
@@ -46,7 +46,7 @@ kubectl -n games logs sts/crafty | grep -i -A3 -E 'account|password'
   remove one with `curl -X DELETE localhost:8080/routes/<hostname>`
 - Image bumps restart every server (one pod, no rolling update); snapshot
   `config-crafty-0` first, its migrations are one-way.
-- Panel TLS: the Gateway terminates with the wildcard certificate and does not
-  verify Crafty's self-signed certificate, so a browser warning cannot appear.
+- Panel TLS: Crafty serves its own self-signed certificate; the browser warns
+  once per device.
 - Do not remove `games` from `k8s/apps/kustomization.yaml` while servers exist:
   that prunes the namespace and its PVC objects.

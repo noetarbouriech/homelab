@@ -21,7 +21,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mc-router
-          image: itzg/mc-router:v1.47.0
+          image: itzg/mc-router:1.47.0
           args:
             - -port
             - "25565"

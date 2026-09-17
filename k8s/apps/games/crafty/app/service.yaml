@@ -5,8 +5,11 @@ metadata:
   labels:
     app.kubernetes.io/name: crafty
     app.kubernetes.io/instance: crafty
+    type: public-lb
+  annotations:
+    lbipam.cilium.io/ips: "10.40.1.5"
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app.kubernetes.io/name: crafty
     app.kubernetes.io/instance: crafty
@@ -15,7 +18,6 @@ spec:
       port: 8443
       targetPort: https
       protocol: TCP
-      appProtocol: https
 ---
 # ClusterIP: None -> DNS returns the pod IP, so mc-router can reach any port a
 # server listens on without declaring each one on a Service.
