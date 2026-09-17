@@ -6,9 +6,6 @@ spec:
   interval: 10m
   prune: true
   wait: true
-
-  # First boot initialises SQLite and downloads Crafty's jar manifest; give it
-  # room so Flux does not flap while the startup probe is still running.
   timeout: 10m
 
   path: ./k8s/apps/games/crafty/app

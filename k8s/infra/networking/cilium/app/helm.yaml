@@ -21,8 +21,6 @@ spec:
         kind: HelmRepository
         name: cilium
   values:
-    # Cilium's upgrade guide asks for the minor version originally installed in
-    # the cluster so the datapath is not disrupted by a minor upgrade.
     upgradeCompatibility: "1.19"
 
     cluster:

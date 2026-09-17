@@ -1,7 +1,3 @@
-# The name already resolves: *.home.noe-t.dev points at the Cilium Gateway
-# (10.40.1.0), and the Gateway's HTTPS listener holds the wildcard certificate
-# for it. So all this route does is send that hostname to Crafty's port; the
-# Gateway -> backend hop is TLS (see backendtlspolicy.yaml).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
