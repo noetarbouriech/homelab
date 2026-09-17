@@ -74,6 +74,13 @@ spec:
               mountPath: /crafty/backups
             - name: logs
               mountPath: /crafty/logs
+            # Crafty writes its own self-signed certificate here; the directory
+            # left behind by the old secret mount is not group-writable.
+            - name: panel-certs
+              mountPath: /crafty/app/config/web/certs
+      volumes:
+        - name: panel-certs
+          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: config
