@@ -39,8 +39,8 @@ players -> 10.40.1.5:<port> -> crafty Service (L2-announced LB IP)
 | Image | `registry.gitlab.com/crafty-controller/crafty-4:4.11.0` |
 | LB IP | `10.40.1.5`, pinned via `lbipam.cilium.io/ips` |
 | PVCs | `*-crafty-0`: config 2Gi, servers 40Gi, backups 30Gi, logs 2Gi |
-| Panel cert | `Certificate crafty-panel` -> secret `crafty-panel-tls` |
-| Gateway hop | `BackendTLSPolicy crafty`, hostname `mc.home.noe-t.dev` |
+| Panel cert | in-cluster CA `crafty-ca`, leaf secret `crafty-panel-tls` |
+| Gateway hop | `BackendTLSPolicy crafty`, anchors on ConfigMap `crafty-ca` |
 | Max servers | 15 (one per pre-declared port) |
 | Pod memory | limit 12Gi; the sum of all servers' `-Xmx` must fit under it |
 
@@ -130,7 +130,8 @@ is still announced (`status.loadBalancer.ingress[0].ip` of the gateway Service).
 
 ### Certificate renewal
 
-cert-manager renews at roughly day 60 of a 90-day certificate. The mounted files
+The panel certificate is issued by the in-cluster CA (`crafty-ca`, 10 years)
+with a 1-year leaf, so nothing here depends on public ACME. The mounted files
 refresh on their own, but **Crafty reads its certificate only at startup**, so
 restart the pod after a renewal:
 
@@ -142,22 +143,44 @@ Miss it and nothing breaks immediately — the served certificate stays valid
 until its expiry date; after that the Gateway to Crafty hop fails and the panel
 returns 502 until the pod is restarted.
 
+### Why the panel certificate is not from Let's Encrypt
+
+`mc.home.noe-t.dev` sits under the `*.home.noe-t.dev` wildcard, and DNS-01
+challenges for names under it cannot currently be published: the Porkbun API
+accepts the TXT record (it shows up in `dns/retrieve`), but the authoritative
+nameservers answer `NXDOMAIN` for it, so no CA can validate the challenge.
+The same applies to the wildcard itself, which means the existing
+`home-wildcard` certificate (issued 2026-08-19, renewal scheduled 2026-10-18)
+is likely to fail its next renewal. Fixing that means finding where the
+`home.noe-t.dev` records are actually served — the wildcard is not visible
+through the Porkbun API at all, so the serving zone and the API disagree.
+
 ## Operations and troubleshooting
 
 - Reconcile after a push: `flux reconcile kustomization crafty -n games`.
-- Panel is a 502/503 from the Gateway: check the policy and the backend cert.
-  `kubectl -n games get backendtlspolicy crafty -o yaml` (an `Accepted` or
-  `ResolvedRefs` condition of `False` means Cilium rejected the trust anchor),
-  then:
+- Panel is a 502/503 from the Gateway: the trust anchor is the usual culprit.
+  Check `kubectl -n games get backendtlspolicy crafty -o yaml` (an `Accepted` or
+  `ResolvedRefs` condition of `False` means Cilium rejected it) and confirm the
+  ConfigMap trust-manager publishes exists:
 
   ```sh
-  openssl s_client -connect 10.40.1.5:8443 \
-    -servername mc.home.noe-t.dev </dev/null | openssl x509 -noout -issuer -dates
+  kubectl -n games get configmap crafty-ca \
+    -o jsonpath='{.data.ca\.crt}' | head -2
   ```
 
+  Then look at the backend certificate itself:
+
+  ```sh
+  openssl s_client -connect 10.40.1.5:8443 -servername mc.home.noe-t.dev \
+    </dev/null | openssl x509 -noout -issuer -dates
+  ```
+
+  The issuer should be `crafty-internal-ca`; if the dates are past, restart the
+  pod (see *Certificate renewal*).
 - Pod stuck in `ContainerCreating`: it is waiting for the certificate secret.
   `kubectl -n games describe pod crafty-0` shows the mount error, and
-  `kubectl -n games get certificate crafty-panel` shows why issuance failed.
+  `kubectl -n games get certificate -n games crafty-panel` plus
+  `kubectl -n cert-manager get certificate crafty-ca` show why issuance failed.
 - Crafty logs a permission error reading the certificate: raise `defaultMode`
   from `0440` to `0444` in `statefulset.yaml`.
 - Service has no external IP: the address is taken or the label no longer

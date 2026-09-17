@@ -1,0 +1,46 @@
+# trust-manager distributes CA bundles (Secret -> ConfigMap). It exists here for
+# one reason: Cilium's BackendTLSPolicy can only take a trust anchor from a
+# ConfigMap, while cert-manager only ever writes Secrets. Without it the CA for
+# the games namespace would have to be copied by hand.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: jetstack
+  namespace: cert-manager
+spec:
+  interval: 24h
+  url: https://charts.jetstack.io
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: trust-manager
+  namespace: cert-manager
+spec:
+  interval: 12h
+  releaseName: trust-manager
+  chart:
+    spec:
+      chart: trust-manager
+      version: "0.25.0"
+      sourceRef:
+        kind: HelmRepository
+        name: jetstack
+        namespace: cert-manager
+  install:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 2m
+  upgrade:
+    strategy:
+      name: RetryOnFailure
+      retryInterval: 3m
+  values:
+    crds:
+      enabled: true
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 128Mi

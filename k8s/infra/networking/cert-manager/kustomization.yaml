@@ -5,3 +5,4 @@ resources:
   - namespace.yaml
   - app.ks.yaml
   - porkbun.ks.yaml
+  - trust-manager.ks.yaml

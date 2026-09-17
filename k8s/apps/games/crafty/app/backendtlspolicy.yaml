@@ -2,10 +2,10 @@
 # has no HTTP listener at all. BackendTLSPolicy support landed in Cilium 1.20
 # (that is why this repo pins >= 1.20.2).
 #
-# Crafty serves the cert-manager certificate from the games namespace, which
-# chains to a public CA, so "System" is the trust anchor. Cilium accepts exactly
-# one of wellKnownCACertificates / caCertificateRefs; the fallback, if this is
-# ever rejected, is a ConfigMap holding a private CA plus caCertificateRefs.
+# The trust anchor is the in-cluster CA. Cilium only accepts a ConfigMap here
+# (single ref, key "ca.crt"); trust-manager publishes exactly that object into
+# this namespace from the cert-manager Secret, and keeps it current if the CA
+# rotates.
 apiVersion: gateway.networking.k8s.io/v1
 kind: BackendTLSPolicy
 metadata:
@@ -17,4 +17,7 @@ spec:
       name: crafty
   validation:
     hostname: mc.home.noe-t.dev
-    wellKnownCACertificates: System
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: crafty-ca
