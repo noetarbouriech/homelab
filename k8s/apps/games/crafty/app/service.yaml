@@ -5,11 +5,8 @@ metadata:
   labels:
     app.kubernetes.io/name: crafty
     app.kubernetes.io/instance: crafty
-    type: public-lb
-  annotations:
-    lbipam.cilium.io/ips: "10.40.1.5"
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: crafty
     app.kubernetes.io/instance: crafty
@@ -19,67 +16,23 @@ spec:
       targetPort: https
       protocol: TCP
       appProtocol: https
-    - name: mc-25565
+---
+# ClusterIP: None -> DNS returns the pod IP, so mc-router can reach any port a
+# server listens on without declaring each one on a Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: crafty-headless
+  labels:
+    app.kubernetes.io/name: crafty
+    app.kubernetes.io/instance: crafty
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: crafty
+    app.kubernetes.io/instance: crafty
+  ports:
+    - name: minecraft
       port: 25565
       targetPort: 25565
       protocol: TCP
-    - name: mc-25566
-      port: 25566
-      targetPort: 25566
-      protocol: TCP
-    - name: mc-25567
-      port: 25567
-      targetPort: 25567
-      protocol: TCP
-    - name: mc-25568
-      port: 25568
-      targetPort: 25568
-      protocol: TCP
-    - name: mc-25569
-      port: 25569
-      targetPort: 25569
-      protocol: TCP
-    - name: mc-25570
-      port: 25570
-      targetPort: 25570
-      protocol: TCP
-    - name: mc-25571
-      port: 25571
-      targetPort: 25571
-      protocol: TCP
-    - name: mc-25572
-      port: 25572
-      targetPort: 25572
-      protocol: TCP
-    - name: mc-25573
-      port: 25573
-      targetPort: 25573
-      protocol: TCP
-    - name: mc-25574
-      port: 25574
-      targetPort: 25574
-      protocol: TCP
-    - name: mc-25575
-      port: 25575
-      targetPort: 25575
-      protocol: TCP
-    - name: mc-25576
-      port: 25576
-      targetPort: 25576
-      protocol: TCP
-    - name: mc-25577
-      port: 25577
-      targetPort: 25577
-      protocol: TCP
-    - name: mc-25578
-      port: 25578
-      targetPort: 25578
-      protocol: TCP
-    - name: mc-25579
-      port: 25579
-      targetPort: 25579
-      protocol: TCP
-    - name: bedrock-19132
-      port: 19132
-      targetPort: 19132
-      protocol: UDP

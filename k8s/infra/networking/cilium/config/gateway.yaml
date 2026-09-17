@@ -28,3 +28,9 @@ spec:
         certificateRefs:
           - kind: Secret
             name: home-wildcard-tls
+    - name: mc
+      protocol: TCP
+      port: 25565
+      allowedRoutes:
+        namespaces:
+          from: All

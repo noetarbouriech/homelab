@@ -1,0 +1,13 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: TCPRoute
+metadata:
+  name: mc-router
+spec:
+  parentRefs:
+    - name: cilium-gateway
+      namespace: kube-system
+      sectionName: mc
+  rules:
+    - backendRefs:
+        - name: mc-router
+          port: 25565

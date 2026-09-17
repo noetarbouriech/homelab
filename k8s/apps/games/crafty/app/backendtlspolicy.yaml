@@ -9,4 +9,3 @@ spec:
       name: crafty
   validation:
     hostname: mc.home.noe-t.dev
-    wellKnownCACertificates: System

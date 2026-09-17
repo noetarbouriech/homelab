@@ -74,19 +74,6 @@ spec:
               mountPath: /crafty/backups
             - name: logs
               mountPath: /crafty/logs
-            - name: panel-cert
-              mountPath: /crafty/app/config/web/certs
-              readOnly: true
-      volumes:
-        - name: panel-cert
-          secret:
-            secretName: crafty-panel-tls
-            defaultMode: 0440
-            items:
-              - key: tls.crt
-                path: commander.cert.pem
-              - key: tls.key
-                path: commander.key.pem
   volumeClaimTemplates:
     - metadata:
         name: config
