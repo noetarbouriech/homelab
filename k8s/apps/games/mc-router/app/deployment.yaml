@@ -14,7 +14,8 @@ spec:
       labels:
         app.kubernetes.io/name: mc-router
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: mc-router
+      automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
         seccompProfile:
@@ -22,7 +23,11 @@ spec:
       containers:
         - name: mc-router
           image: itzg/mc-router:1.47.0
+          env:
+            - name: KUBE_NAMESPACE
+              value: games
           args:
+            - -in-kube-cluster
             - -port
             - "25565"
             - -api-binding

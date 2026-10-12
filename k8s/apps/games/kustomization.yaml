@@ -3,5 +3,4 @@ kind: Kustomization
 namespace: games
 resources:
   - namespace.yaml
-  - crafty
   - mc-router
