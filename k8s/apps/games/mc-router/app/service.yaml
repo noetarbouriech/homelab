@@ -13,19 +13,3 @@ spec:
       port: 25565
       targetPort: minecraft
       protocol: TCP
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mc-router-api
-  labels:
-    app.kubernetes.io/name: mc-router
-spec:
-  type: ClusterIP
-  selector:
-    app.kubernetes.io/name: mc-router
-  ports:
-    - name: api
-      port: 8080
-      targetPort: api
-      protocol: TCP

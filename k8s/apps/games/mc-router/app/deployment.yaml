@@ -30,14 +30,9 @@ spec:
             - -in-kube-cluster
             - -port
             - "25565"
-            - -api-binding
-            - ":8080"
           ports:
             - name: minecraft
               containerPort: 25565
-              protocol: TCP
-            - name: api
-              containerPort: 8080
               protocol: TCP
           readinessProbe:
             tcpSocket:
