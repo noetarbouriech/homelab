@@ -22,7 +22,7 @@ spec:
   chart:
     spec:
       chart: home-assistant
-      version: "0.3.74"
+      version: "0.3.90"
       sourceRef:
         kind: HelmRepository
         name: pajikos
@@ -41,7 +41,7 @@ spec:
     dnsPolicy: ClusterFirstWithHostNet
     image:
       repository: ghcr.io/home-assistant/home-assistant
-      tag: "2026.9.1"
+      tag: "2026.11.0"
       pullPolicy: IfNotPresent
     controller:
       type: StatefulSet
@@ -82,23 +82,27 @@ spec:
             homeassistant.components.matter: debug
             homeassistant.components.thread: debug
             python_otbr_api: debug
+        # HTTP settings (use_x_forwarded_for, trusted_proxies, port, ...) are
+        # UI-managed in /config/.storage/http since HA 2026.8. The legacy
+        # `http:` YAML block is ignored and breaks in 2027.2, so it must NOT
+        # be added here. The chart seeds .storage/http on a fresh install from
+        # configuration.trusted_proxies (see httpStorageTemplate).
         homeassistant:
           auth_providers:
+            # Keep `homeassistant` first: the chart's forceInit step
+            # deep-merges lists by index, and the live PVC already uses
+            # this order. The ha-bootstrap Job selects trusted_networks
+            # explicitly, so provider order does not matter for it.
             - type: homeassistant
             # Trusted for tooling (ha-bootstrap Job). Uses the POD network
             # (10.244.0.0/22), NOT node IPs: the trusted_networks provider
-            # refuses addresses that are also in http.trusted_proxies
-            # (10.40.0.0/24 covers every node IP).
+            # refuses addresses that are also in the HTTP trusted_proxies
+            # (10.40.0.0/24 covers every node IP). Any stale node-IP entries
+            # left on the PVC are inert (rejected as proxies).
             - type: trusted_networks
               trusted_networks:
                 - 10.244.0.0/22
               allow_bypass_login: true
-        http:
-          use_x_forwarded_for: true
-          trusted_proxies:
-            {{- range .Values.configuration.trusted_proxies }}
-            - {{ . }}
-            {{- end }}
         frontend:
           themes: !include_dir_merge_named themes
         automation: !include automations.yaml
@@ -112,6 +116,7 @@ spec:
         if [ ! -f /config/configuration.yaml ]; then
           echo "Configuration file not found, creating a new one"
           cp /config-templates/configuration.yaml /config/configuration.yaml
+          config_created="true"
         fi
 
         forceInit="{{ .Values.configuration.forceInit }}"
@@ -127,7 +132,35 @@ spec:
           if [[ ! -s /config/configuration.yaml ]]; then
             cat /config-templates/configuration.yaml > /config/configuration.yaml
           else
-            yq eval-all --inplace 'select(fileIndex == 0) *d select(fileIndex == 1)' /config/configuration.yaml /config-templates/configuration.yaml
+            yq eval-all --inplace --header-preprocess=false 'select(fileIndex == 0) *d select(fileIndex == 1)' /config/configuration.yaml /config-templates/configuration.yaml
+          fi
+        fi
+
+        # HA 2026.8+ migrated HTTP settings to /config/.storage/http; the legacy
+        # `http:` block in configuration.yaml is ignored (and breaks in 2027.2).
+        # Force-init merges keys but never deletes them, so drop the stale block
+        # once the storage migration exists. Guarded: on an older HA without
+        # .storage/http the block is still needed for the one-time migration.
+        if [ -f /config/.storage/http ] && [ "$(yq 'has("http")' /config/configuration.yaml 2>/dev/null)" = "true" ]; then
+          echo "Removing legacy http: block from configuration.yaml (migrated to .storage/http)"
+          if ! yq eval --inplace --header-preprocess=false 'del(.http)' /config/configuration.yaml; then
+            echo "WARNING: could not remove the http: block; remove it manually"
+          fi
+        fi
+
+        # Seed /config/.storage/http on a genuinely fresh install (chart 0.3.75+).
+        # Existing storage is never overwritten, so UI-managed settings win.
+        if [ "$config_created" = "true" ] && [ -f /config-templates/http-storage.json ] && [ ! -f /config/.storage/http ]; then
+          has_http=$(yq 'has("http")' /config/configuration.yaml 2>/dev/null) || has_http="unknown"
+          if [ "$has_http" = "false" ]; then
+            echo "Seeding /config/.storage/http with the reverse proxy configuration"
+            mkdir -p /config/.storage
+            if yq -o=json '.data.stable.created_at = now' /config-templates/http-storage.json > /config/.storage/http.tmp; then
+              mv /config/.storage/http.tmp /config/.storage/http
+            else
+              echo "WARNING: could not render /config/.storage/http, configure the http settings from the UI"
+              rm -f /config/.storage/http.tmp
+            fi
           fi
         fi
 
@@ -147,18 +180,10 @@ spec:
           touch /config/scenes.yaml
         fi
 
-        # --- Custom addition: install HACS ---
-        HACS_VERSION="2.0.5"
-        if [ ! -f /config/custom_components/hacs/manifest.json ]; then
-          mkdir -p /config/custom_components/hacs
-          wget -O /tmp/hacs.zip \
-            "https://github.com/hacs/integration/releases/download/${HACS_VERSION}/hacs.zip"
-          unzip -o /tmp/hacs.zip \
-            -d /config/custom_components/hacs
-          rm -f /tmp/hacs.zip
-          chown -R 568:568 /config/custom_components/hacs
-          test -f /config/custom_components/hacs/manifest.json
-        fi
+        # --- HACS is built into Home Assistant as the Marketplace since 2026.11 ---
+        # HA's HACS migration removes /config/custom_components/hacs on first
+        # start. Do not reinstall the old HACS here: it would fight the migration
+        # and the standalone HACS installer no longer ships for 2026.11+.
 
         # --- Custom addition: install Delta Dore Tydom custom component (pinned) ---
         TYDOM_VERSION="0.31"

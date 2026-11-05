@@ -1,10 +1,12 @@
 # HA bootstrap script — drives config flows for the Thread, Matter and
 # Delta Dore Tydom integrations over Home Assistant's REST API.
 #
-# Authentication: the homeassistant.auth_providers "trusted_networks"
-# provider (allow_bypass_login) in the HA configuration template lets a client
-# originating from a cluster node IP (this Job runs hostNetwork on node1) log
-# in with no credentials. No long-lived token is ever created.
+# Authentication: HA's "trusted_networks" auth provider (allow_bypass_login)
+# accepts the pod network (10.244.0.0/22). Because HA is hostNetwork, Cilium
+# SNATs this Job's traffic to a node IP, which is inside HTTP trusted_proxies
+# and therefore rejected by that provider. The script sends
+# `X-Forwarded-For: $POD_IP`, so HA (trusting the node IP as a proxy) evaluates
+# the pod IP instead. No long-lived token is ever created.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,6 +24,7 @@ data:
         import urllib.request
 
         HA = os.environ.get("HA_URL", "http://home-assistant:8123").rstrip("/")
+        POD_IP = os.environ.get("POD_IP", "")
         CLIENT_ID = os.environ.get("CLIENT_ID", "https://home-assistant.home.noe-t.dev/")
         REDIRECT_URI = CLIENT_ID.rstrip("/") + "/auth/callback"
         TYDOM_HOST = os.environ.get("TYDOM_HOST", "10.40.0.101")
@@ -36,6 +39,8 @@ data:
         def http(method, path, payload=None, token=None, form=False, timeout=15):
             body = None
             headers = {"User-Agent": "ha-bootstrap/1.0"}
+            if POD_IP:
+                headers["X-Forwarded-For"] = POD_IP
             if form and payload is not None:
                 body = urllib.parse.urlencode(payload).encode()
                 headers["Content-Type"] = "application/x-www-form-urlencoded"

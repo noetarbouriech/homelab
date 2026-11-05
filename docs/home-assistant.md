@@ -41,6 +41,42 @@ Device commissioning for Matter-over-Thread (IKEA TRETAKT/VALLHORN/…) is done 
 | Deltadore component | `deltadore_tydom` **v0.31**, installed by the chart initScript into `/config/custom_components` |
 | Thread/matter state dirs | PVC `otbr-thread-state` -> `/var/lib/thread`; PVC `matter-server-data` -> `/data` (both `piraeus-local`, node1) |
 
+## HTTP / reverse proxy settings — UI-managed, not YAML
+
+Since HA 2026.8 the HTTP server settings (`use_x_forwarded_for`, `trusted_proxies`,
+port, SSL profile, …) live in `/config/.storage/http` and are managed from
+**Settings > System > Network > HTTP server**. The old `http:` block in
+`configuration.yaml` is **ignored** and stops working in HA 2027.2.0.
+
+- The Helm `templateConfig` deliberately contains no `http:` block.
+- On an existing install the chart's `forceInit` merge never deletes keys, so the
+  init script removes a leftover `http:` block once `/config/.storage/http`
+  exists. There is nothing to do in the UI: the migrated values
+  (`use_x_forwarded_for: true`, trusted proxy `10.40.0.0/24`) are already stored.
+- On a fresh install the init script seeds `/config/.storage/http` from
+  `configuration.trusted_proxies` in `helm.yaml` (chart 0.3.75+), so the
+  reverse proxy works before the first UI visit.
+- To change the reverse proxy later, use the UI, not `configuration.yaml`.
+  The settings survive pod restarts because `.storage/http` is on the PVC.
+
+## Upgrading Home Assistant
+
+The chart/image are pinned in `k8s/apps/misc/home-assistant/app/helm.yaml`.
+Current target: chart `0.3.90`, HA `2026.11.0`.
+
+- **HACS is now built in as the Marketplace (2026.11).** HA removes
+  `/config/custom_components/hacs` and migrates its data on first start. The
+  chart init script intentionally no longer reinstalls the old HACS; do not add
+  it back. Automations that used the `hacs` integration must use `marketplace`
+  (e.g. `integration_entities('marketplace')`).
+- **2026.11 entity naming** changes some dashboard labels (the entity IDs are
+  unchanged). Review dashboards after the upgrade.
+- **2026.10 auth**: legacy usernames are normalized (lowercase, no surrounding
+  spaces). The only user here is `noe`, so no action is needed.
+- The Delta Dore Tydom custom component stays pinned at `v0.31` and only logs
+  the `via_device` deprecation (removed in 2027.8); it does not block 2026.11.
+  Newer releases (`v0.35`) exist if the integration misbehaves.
+
 ## Secrets (Bitwarden Secrets Manager -> ExternalSecret)
 
 Create in the SM project referenced by the `bitwarden-secretsmanager` ClusterSecretStore:

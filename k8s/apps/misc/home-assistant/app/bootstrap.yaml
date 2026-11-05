@@ -1,11 +1,14 @@
 # One-shot bootstrap Job: creates the HA config entries for the Thread,
 # Matter and Delta Dore Tydom integrations via HA's REST config-flow API.
 #
-# Runs as a normal (non-hostNetwork) pod so its source IP is in the pod
-# network (10.244.0.0/22), which the HA "trusted_networks" auth provider
-# (allow_bypass_login) accepts. Node IPs can NOT be used: they fall inside
-# http.trusted_proxies (10.40.0.0/24) and the provider refuses proxy-range
-# addresses. Idempotent: entries that already exist are skipped.
+# Authentication: HA runs with hostNetwork, so Cilium SNATs this normal
+# (non-hostNetwork) pod's traffic to the node IP (10.40.0.11-13), which is
+# inside the HTTP trusted_proxies (10.40.0.0/24). The trusted_networks auth
+# provider deliberately rejects requests from trusted_proxies, so the Job
+# sends `X-Forwarded-For: <its own pod IP>` on every request. HA trusts the
+# node IP as a proxy and uses the pod IP (10.244.0.0/22, a trusted network)
+# as the client. No long-lived token is ever created.
+# Idempotent: entries that already exist are skipped.
 #
 # Re-run (after a HA PVC wipe, or to fix entries):
 #   kubectl -n iot delete job ha-bootstrap
@@ -42,6 +45,12 @@ spec:
               value: "001A250A0A63"
             - name: MATTER_URL
               value: "ws://matter-server:5580/ws"
+            # Sent as X-Forwarded-For so trusted_networks sees the pod IP,
+            # not the Cilium-SNATed node IP (which is a trusted proxy).
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           resources:
             requests:
               cpu: 50m
