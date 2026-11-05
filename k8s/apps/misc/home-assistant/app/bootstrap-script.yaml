@@ -2,11 +2,12 @@
 # Delta Dore Tydom integrations over Home Assistant's REST API.
 #
 # Authentication: HA's "trusted_networks" auth provider (allow_bypass_login)
-# accepts the pod network (10.244.0.0/22). Because HA is hostNetwork, Cilium
-# SNATs this Job's traffic to a node IP, which is inside HTTP trusted_proxies
-# and therefore rejected by that provider. The script sends
-# `X-Forwarded-For: $POD_IP`, so HA (trusting the node IP as a proxy) evaluates
-# the pod IP instead. No long-lived token is ever created.
+# accepts the pod network (10.244.0.0/22). Depending on scheduling, HA sees
+# this Job either as its pod IP (same-node direct routing) or as a node IP
+# (cross-node Cilium SNAT; node IPs are inside HTTP trusted_proxies and are
+# rejected by that provider). The script probes /auth/providers directly and
+# only switches to `X-Forwarded-For: $POD_IP` when the provider is hidden.
+# No long-lived token is ever created.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -25,6 +26,7 @@ data:
 
         HA = os.environ.get("HA_URL", "http://home-assistant:8123").rstrip("/")
         POD_IP = os.environ.get("POD_IP", "")
+        USE_XFF = False
         CLIENT_ID = os.environ.get("CLIENT_ID", "https://home-assistant.home.noe-t.dev/")
         REDIRECT_URI = CLIENT_ID.rstrip("/") + "/auth/callback"
         TYDOM_HOST = os.environ.get("TYDOM_HOST", "10.40.0.101")
@@ -39,7 +41,7 @@ data:
         def http(method, path, payload=None, token=None, form=False, timeout=15):
             body = None
             headers = {"User-Agent": "ha-bootstrap/1.0"}
-            if POD_IP:
+            if USE_XFF and POD_IP:
                 headers["X-Forwarded-For"] = POD_IP
             if form and payload is not None:
                 body = urllib.parse.urlencode(payload).encode()
@@ -75,9 +77,21 @@ data:
 
         def login():
             """Log in via the trusted_networks provider; return access token."""
+            global USE_XFF
+
+            # Probe without X-Forwarded-For first. If HA is on the same node,
+            # the direct source is the pod IP and trusted_networks is already
+            # exposed. If not, Cilium SNATs us to a node IP (a trusted proxy,
+            # so the provider hides itself); retry with XFF so HA evaluates
+            # the pod IP instead.
             _, providers = http("GET", "/auth/providers")
             types = [p.get("type") for p in providers.get("providers", [])]
-            print("auth providers:", types)
+            print("auth providers (direct):", types)
+            if "trusted_networks" not in types and POD_IP:
+                USE_XFF = True
+                _, providers = http("GET", "/auth/providers")
+                types = [p.get("type") for p in providers.get("providers", [])]
+                print("auth providers (X-Forwarded-For):", types)
             if "trusted_networks" not in types:
                 raise RuntimeError("trusted_networks provider is not enabled on HA")
 
