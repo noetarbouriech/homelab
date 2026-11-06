@@ -68,7 +68,10 @@ Current target: chart `0.3.90`, HA `2026.11.0`.
   `/config/custom_components/hacs` and migrates its data on first start. The
   chart init script intentionally no longer reinstalls the old HACS; do not add
   it back. Automations that used the `hacs` integration must use `marketplace`
-  (e.g. `integration_entities('marketplace')`).
+  (e.g. `integration_entities('marketplace')`). HA may fail to delete the empty
+  wrapper directory because `custom_components` is root-owned; the init script
+  removes that leftover on the next restart (the `Permission denied` log line
+  is harmless until then).
 - **2026.11 entity naming** changes some dashboard labels (the entity IDs are
   unchanged). Review dashboards after the upgrade.
 - **2026.10 auth**: legacy usernames are normalized (lowercase, no surrounding

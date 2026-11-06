@@ -184,6 +184,12 @@ spec:
         # HA's HACS migration removes /config/custom_components/hacs on first
         # start. Do not reinstall the old HACS here: it would fight the migration
         # and the standalone HACS installer no longer ships for 2026.11+.
+        # The migration cannot delete the wrapper directory because the parent
+        # custom_components is root-owned and not group-writable; remove the
+        # empty leftover so it is never picked up as an integration.
+        if [ -d /config/custom_components/hacs ] && [ ! -f /config/custom_components/hacs/manifest.json ]; then
+          rm -rf /config/custom_components/hacs || true
+        fi
 
         # --- Custom addition: install Delta Dore Tydom custom component (pinned) ---
         TYDOM_VERSION="0.31"
