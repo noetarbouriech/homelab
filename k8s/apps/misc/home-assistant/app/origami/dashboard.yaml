@@ -1,0 +1,598 @@
+# Origami Lite dashboard.
+# Bubble Card + Origami theme/modules, tailored to this home.
+# Room cards open Bubble Card pop-ups; the bottom bar navigates.
+title: Origami
+views:
+  - type: sections
+    title: Home
+    path: home
+    icon: mdi:home-heart
+    max_columns: 2
+    dense_section_placement: false
+    sections:
+      # Header: greeting, people, weather, alarm, bins
+      - type: grid
+        column_span: 2
+        cards:
+          - type: markdown
+            content: |
+              # Hello, Noé
+              {{ now().strftime('%A %d %B') }}
+            grid_options:
+              columns: full
+              rows: auto
+          - type: custom:bubble-card
+            card_type: separator
+            name: Home
+            modules:
+              - origami_header
+            origami_header:
+              value_style: chip
+              icon_size: var(--icon-size-m)
+            grid_options:
+              columns: full
+              rows: auto
+            sub_button:
+              main:
+                - name: Noé
+                  entity: person.noe
+                  icon: mdi:account
+                  show_name: false
+                  origami_header:
+                    name: Noé
+                  tap_action:
+                    action: more-info
+                - name: Weather
+                  entity: weather.forecast_home
+                  icon: mdi:weather-partly-cloudy
+                  origami_header:
+                    name: '${attr.temperature}°'
+                  tap_action:
+                    action: more-info
+                - name: Alarm
+                  entity: alarm_control_panel.tyxal_alarm
+                  icon: mdi:shield-home
+                  origami_header:
+                    name: '${state}'
+                  tap_action:
+                    action: more-info
+                - name: Bins
+                  entity: sensor.poubelles_dechets_recyclables
+                  icon: mdi:trash-can-outline
+                  origami_header:
+                    name: '${state}'
+                  tap_action:
+                    action: more-info
+
+      # Favorites: tap a tile to open its room/house pop-up
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Favorites
+            modules:
+              - origami_header
+            origami_header:
+              icon_size: var(--icon-size-m)
+            grid_options:
+              columns: full
+              rows: auto
+            sub_button:
+              main:
+                - name: House
+                  icon: mdi:home-city
+                  show_name: true
+                  content_layout: icon-right
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#house'
+          - type: custom:bubble-card
+            card_type: sub-buttons
+            modules:
+              - origami_tiles
+            grid_options:
+              columns: full
+              rows: auto
+            origami_tiles:
+              columns: 2
+            sub_button:
+              bottom:
+                - name: Reading
+                  entity: light.living_room_lampe_lecture
+                  icon: mdi:lamp
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#living-room'
+                - name: Donut
+                  entity: light.living_room_prise_salon
+                  icon: mdi:lightbulb
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#living-room'
+                - name: Entrance
+                  entity: light.living_room_lumiere_entree
+                  icon: mdi:lightbulb
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#entrance'
+                - name: Split
+                  entity: climate.split_sejour
+                  icon: mdi:air-conditioner
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#living-room'
+                - name: Radiator
+                  entity: climate.radiateurs
+                  icon: mdi:radiator
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#bedroom'
+                - name: Bay
+                  entity: cover.baie_sejour
+                  icon: mdi:window-shutter
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#living-room'
+                - name: Bedroom
+                  entity: cover.chambre
+                  icon: mdi:window-shutter
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#bedroom'
+                - name: All shutters
+                  entity: cover.all_shutters
+                  icon: mdi:window-shutter
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#house'
+
+      # Rooms
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: Rooms
+            modules:
+              - origami_header
+            origami_header:
+              icon_size: var(--icon-size-l)
+            grid_options:
+              columns: full
+              rows: auto
+          - type: custom:bubble-card
+            card_type: sub-buttons
+            modules:
+              - origami_tiles
+            grid_options:
+              columns: full
+              rows: auto
+            origami_tiles:
+              columns: 1
+            sub_button:
+              bottom:
+                - name: Living Room
+                  entity: climate.split_sejour
+                  icon: mdi:sofa
+                  origami_tiles:
+                    state: '${attr.current_temperature}°'
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#living-room'
+                - name: Bedroom
+                  entity: climate.radiateurs
+                  icon: mdi:bed
+                  origami_tiles:
+                    state: '${attr.current_temperature}°'
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#bedroom'
+                - name: Entrance
+                  entity: alarm_control_panel.tyxal_alarm
+                  icon: mdi:door
+                  origami_tiles:
+                    state: '${state}'
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#entrance'
+
+      # House: whole-home controls and information
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:bubble-card
+            card_type: separator
+            name: House
+            modules:
+              - origami_header
+            origami_header:
+              icon_size: var(--icon-size-l)
+            grid_options:
+              columns: full
+              rows: auto
+          - type: custom:bubble-card
+            card_type: cover
+            entity: cover.all_shutters
+            name: All shutters
+            icon: mdi:window-shutter
+            modules:
+              - origami_base
+            grid_options:
+              columns: full
+              rows: auto
+          - type: custom:bubble-card
+            card_type: calendar
+            entities:
+              - entity: calendar.poubelles_toulouse_metropole
+            modules:
+              - origami_base
+            grid_options:
+              columns: full
+              rows: auto
+          - type: custom:bubble-card
+            card_type: button
+            entity: sensor.poubelles_dechets_recyclables
+            name: Recyclables
+            icon: mdi:recycle
+            modules:
+              - origami_base
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: auto
+          - type: custom:bubble-card
+            card_type: button
+            entity: sensor.poubelles_dechets_non_recyclables
+            name: Non-recyclables
+            icon: mdi:trash-can
+            modules:
+              - origami_base
+            tap_action:
+              action: more-info
+            grid_options:
+              columns: 6
+              rows: auto
+          - type: todo-list
+            entity: todo.shopping_list
+            grid_options:
+              columns: full
+              rows: auto
+          - type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+            grid_options:
+              columns: full
+              rows: auto
+
+      # Bottom navigation
+      - type: grid
+        column_span: 2
+        cards:
+          - type: custom:bubble-card
+            card_type: sub-buttons
+            modules:
+              - origami_button
+            origami_button:
+              columns: 5
+              background: false
+            grid_options:
+              columns: full
+              rows: auto
+            sub_button:
+              bottom:
+                - name: Home
+                  icon: mdi:home
+                  show_name: true
+                  tap_action:
+                    action: navigate
+                    navigation_path: '/origami'
+                - name: Living
+                  icon: mdi:sofa
+                  show_name: true
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#living-room'
+                - name: Bedroom
+                  icon: mdi:bed
+                  show_name: true
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#bedroom'
+                - name: Entrance
+                  icon: mdi:door
+                  show_name: true
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#entrance'
+                - name: House
+                  icon: mdi:home-city
+                  show_name: true
+                  tap_action:
+                    action: navigate
+                    navigation_path: '#house'
+
+      # Pop-ups
+      - type: grid
+        column_span: 1
+        cards:
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#living-room'
+            name: Living Room
+            icon: mdi:sofa
+            button_type: name
+            show_header: true
+            show_name: true
+            show_icon: false
+            card_layout: large
+            scrolling_effect: false
+            margin: 7px
+            margin_top_mobile: 22px
+            margin_top_desktop: 30%
+            bg_color: transparent
+            bg_opacity: '100'
+            bg_blur: '0'
+            shadow_opacity: '12'
+            hide_backdrop: false
+            modules:
+              - origami_popup
+            origami_popup:
+              subtitle_style: text
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: switch
+                    entity: climate.split_sejour
+                    name: Split
+                    icon: mdi:air-conditioner
+                    modules:
+                      - origami_base
+                      - origami_climate
+                    origami_base:
+                      tile: true
+                    scrolling_effect: false
+                    tap_action:
+                      action: more-info
+                    button_action:
+                      tap_action:
+                        action: more-info
+                  - type: custom:bubble-card
+                    card_type: cover
+                    entity: cover.baie_sejour
+                    name: Bay
+                    icon: mdi:window-shutter
+                    modules:
+                      - origami_base
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: switch
+                    entity: light.living_room_lampe_lecture
+                    name: Reading
+                    icon: mdi:lamp
+                    modules:
+                      - origami_base
+                      - origami_light
+                    origami_base:
+                      tile: true
+                    state_content:
+                      - state
+                    tap_action:
+                      action: more-info
+                    button_action:
+                      tap_action:
+                        action: more-info
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: switch
+                    entity: light.living_room_prise_salon
+                    name: Donut
+                    icon: mdi:lightbulb
+                    modules:
+                      - origami_base
+                      - origami_light
+                    origami_base:
+                      tile: true
+                    state_content:
+                      - state
+                    tap_action:
+                      action: more-info
+                    button_action:
+                      tap_action:
+                        action: more-info
+                  - type: custom:bubble-card
+                    card_type: button
+                    entity: sensor.split_sejour_ambienttemperature
+                    name: Temperature
+                    icon: mdi:thermometer
+                    modules:
+                      - origami_base
+                    tap_action:
+                      action: more-info
+
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#bedroom'
+            name: Bedroom
+            icon: mdi:bed
+            button_type: name
+            show_header: true
+            show_name: true
+            show_icon: false
+            card_layout: large
+            scrolling_effect: false
+            margin: 7px
+            margin_top_mobile: 22px
+            margin_top_desktop: 30%
+            bg_color: transparent
+            bg_opacity: '100'
+            bg_blur: '0'
+            shadow_opacity: '12'
+            hide_backdrop: false
+            modules:
+              - origami_popup
+            origami_popup:
+              subtitle_style: text
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: switch
+                    entity: climate.radiateurs
+                    name: Radiator
+                    icon: mdi:radiator
+                    modules:
+                      - origami_base
+                      - origami_climate
+                    origami_base:
+                      tile: true
+                    scrolling_effect: false
+                    tap_action:
+                      action: more-info
+                    button_action:
+                      tap_action:
+                        action: more-info
+                  - type: custom:bubble-card
+                    card_type: cover
+                    entity: cover.chambre
+                    name: Shutter
+                    icon: mdi:window-shutter
+                    modules:
+                      - origami_base
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: switch
+                    entity: switch.living_room_plug_2
+                    name: Plug
+                    icon: mdi:power-socket-eu
+                    modules:
+                      - origami_base
+                    tap_action:
+                      action: toggle
+                  - type: custom:bubble-card
+                    card_type: button
+                    entity: sensor.radiateurs_temperature
+                    name: Temperature
+                    icon: mdi:thermometer
+                    modules:
+                      - origami_base
+                    tap_action:
+                      action: more-info
+
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#entrance'
+            name: Entrance
+            icon: mdi:door
+            button_type: name
+            show_header: true
+            show_name: true
+            show_icon: false
+            card_layout: large
+            scrolling_effect: false
+            margin: 7px
+            margin_top_mobile: 22px
+            margin_top_desktop: 30%
+            bg_color: transparent
+            bg_opacity: '100'
+            bg_blur: '0'
+            shadow_opacity: '12'
+            hide_backdrop: false
+            modules:
+              - origami_popup
+            origami_popup:
+              subtitle_style: text
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: button
+                    button_type: switch
+                    entity: light.living_room_lumiere_entree
+                    name: Light
+                    icon: mdi:lightbulb
+                    modules:
+                      - origami_base
+                      - origami_light
+                    origami_base:
+                      tile: true
+                    state_content:
+                      - state
+                    tap_action:
+                      action: more-info
+                    button_action:
+                      tap_action:
+                        action: more-info
+                  - type: alarm-panel
+                    entity: alarm_control_panel.tyxal_alarm
+                    states:
+                      - arm_home
+                      - arm_away
+                      - disarmed
+                  - type: custom:bubble-card
+                    card_type: button
+                    entity: binary_sensor.living_room_movement_sensor_occupancy
+                    name: Movement
+                    icon: mdi:motion-sensor
+                    modules:
+                      - origami_base
+                    tap_action:
+                      action: more-info
+
+          - type: custom:bubble-card
+            card_type: pop-up
+            hash: '#house'
+            name: House
+            icon: mdi:home-city
+            button_type: name
+            show_header: true
+            show_name: true
+            show_icon: false
+            card_layout: large
+            scrolling_effect: false
+            margin: 7px
+            margin_top_mobile: 22px
+            margin_top_desktop: 30%
+            bg_color: transparent
+            bg_opacity: '100'
+            bg_blur: '0'
+            shadow_opacity: '12'
+            hide_backdrop: false
+            modules:
+              - origami_popup
+            origami_popup:
+              subtitle_style: text
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: custom:bubble-card
+                    card_type: cover
+                    entity: cover.all_shutters
+                    name: All shutters
+                    icon: mdi:window-shutter
+                    modules:
+                      - origami_base
+                  - type: custom:bubble-card
+                    card_type: button
+                    entity: person.noe
+                    name: Noé
+                    icon: mdi:account
+                    modules:
+                      - origami_base
+                    tap_action:
+                      action: more-info
+                  - type: custom:bubble-card
+                    card_type: calendar
+                    entities:
+                      - entity: calendar.poubelles_toulouse_metropole
+                    modules:
+                      - origami_base
+                  - type: weather-forecast
+                    entity: weather.forecast_home
+                    forecast_type: daily
+                  - type: todo-list
+                    entity: todo.shopping_list

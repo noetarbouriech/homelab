@@ -80,6 +80,42 @@ Current target: chart `0.3.90`, HA `2026.11.0`.
   the `via_device` deprecation (removed in 2027.8); it does not block 2026.11.
   Newer releases (`v0.35`) exist if the integration misbehaves.
 
+## Dashboard — Origami Lite (Git-managed YAML)
+
+The `Origami` dashboard is a Bubble Card layout using the Origami theme and a
+subset of the upstream Bubble modules. It lives in
+`k8s/apps/misc/home-assistant/app/origami/`:
+
+- `dashboard.yaml` — the Lite dashboard (Home, favorites, rooms, House, pop-ups)
+- `theme.yaml` — upstream Origami theme, pinned at release `V2.0`
+- `modules/origami_*.yaml` — the eight upstream modules used by the dashboard
+
+Kustomize generates three ConfigMaps (`origami-dashboard`, `origami-theme`,
+`origami-modules`) from those files. `helm.yaml` mounts them read-only at
+`/config/origami`, `/config/themes` and `/config/bubble_card/modules`, and adds
+the `lovelace.dashboards.origami` YAML dashboard. The result is at `/origami`.
+
+Setup / workflow:
+
+1. Install **Bubble Card Tools** from Settings > Marketplace, then add the
+   integration under Settings > Devices & services. It reads the modules from
+   `/config/bubble_card/modules`. Restart if the Marketplace asks.
+2. Select **Origami** under Profile > Theme. If it is not listed, run
+   `frontend.reload_themes`.
+3. Edit `dashboard.yaml`, `theme.yaml` or the modules in Git, commit/push, then
+   `flux reconcile kustomization home-assistant -n iot --with-source`. The
+   mounts are ConfigMaps, so after a data-only change run
+   `kubectl -n iot rollout restart statefulset/home-assistant` (the theme can be
+   reloaded instead with `frontend.reload_themes`).
+4. The YAML dashboard is **read-only in the UI**; use `dashboard_test` for UI
+   experiments. `map` and `dashboard_test` are unchanged.
+
+The Lite deliberately does not install Paper Buttons Row, Navbar Card, Origami
+Weather/Notifications, the Origami packages or the Montserrat font. The alarm
+panel, weather forecast and todo list are the built-in Home Assistant cards; all
+other cards are Bubble Card. The upstream modules are experimental and pinned to
+Origami `V2.0`; re-vendor and retest after a Bubble Card upgrade.
+
 ## Secrets (Bitwarden Secrets Manager -> ExternalSecret)
 
 Create in the SM project referenced by the `bitwarden-secretsmanager` ClusterSecretStore:

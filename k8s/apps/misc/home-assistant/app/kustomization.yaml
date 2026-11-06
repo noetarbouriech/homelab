@@ -7,3 +7,24 @@ resources:
   - tydom-credentials.yaml
   - bootstrap-script.yaml
   - bootstrap.yaml
+
+configMapGenerator:
+  - name: origami-dashboard
+    files:
+      - dashboard.yaml=origami/dashboard.yaml
+  - name: origami-theme
+    files:
+      - origami.yaml=origami/theme.yaml
+  - name: origami-modules
+    files:
+      - origami_base.yaml=origami/modules/origami_base.yaml
+      - origami_button.yaml=origami/modules/origami_button.yaml
+      - origami_climate.yaml=origami/modules/origami_climate.yaml
+      - origami_header.yaml=origami/modules/origami_header.yaml
+      - origami_light.yaml=origami/modules/origami_light.yaml
+      - origami_popup.yaml=origami/modules/origami_popup.yaml
+      - origami_slider.yaml=origami/modules/origami_slider.yaml
+      - origami_tiles.yaml=origami/modules/origami_tiles.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
