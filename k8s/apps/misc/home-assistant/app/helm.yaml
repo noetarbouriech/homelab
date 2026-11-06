@@ -54,6 +54,13 @@ spec:
     env:
       - name: TZ
         value: Europe/Paris
+      # Home Assistant's uv installer writes to site-packages, which is
+      # root-owned; the container runs as 568. Point the non-root fallback
+      # (sitecustomize.py, created by the init script) at /config/deps.
+      - name: PYTHONUSERBASE
+        value: /config/deps
+      - name: PYTHONPATH
+        value: /config/deps
     service:
       type: ClusterIP
       port: 8123
@@ -198,6 +205,31 @@ spec:
         mkdir -p /config/custom_components
         chown 568:568 /config/custom_components
         chmod 2775 /config/custom_components
+
+        # The HA image sets UV_SYSTEM_PYTHON=true, which makes HA's uv
+        # installer target root-owned site-packages and fail as user 568.
+        # Drop it at Python startup so HA uses its non-root fallback and
+        # installs integration requirements into the writable user site
+        # under /config/deps (PYTHONUSERBASE).
+        mkdir -p /config/deps
+        cat > /config/deps/sitecustomize.py <<'PY'
+        import os
+        import sys
+
+        os.environ.pop("UV_SYSTEM_PYTHON", None)
+
+        _user_base = os.environ.get("PYTHONUSERBASE", "/config/deps")
+        _user_site = os.path.join(
+            _user_base,
+            "lib",
+            f"python{sys.version_info.major}.{sys.version_info.minor}",
+            "site-packages",
+        )
+        os.makedirs(_user_site, exist_ok=True)
+        if _user_site not in sys.path:
+            sys.path.append(_user_site)
+        PY
+        chown -R 568:568 /config/deps
 
         # --- Custom addition: install Delta Dore Tydom custom component (pinned) ---
         TYDOM_VERSION="0.31"
