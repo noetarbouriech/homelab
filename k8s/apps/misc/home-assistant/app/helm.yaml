@@ -191,6 +191,14 @@ spec:
           rm -rf /config/custom_components/hacs || true
         fi
 
+        # The Marketplace installs/updates custom integrations at runtime as
+        # the HA user (568). On the PVC, custom_components is root-owned and
+        # not group-writable, so make it writable by 568 once (this init runs
+        # as root). Without this, Marketplace installs fail with EACCES.
+        mkdir -p /config/custom_components
+        chown 568:568 /config/custom_components
+        chmod 2775 /config/custom_components
+
         # --- Custom addition: install Delta Dore Tydom custom component (pinned) ---
         TYDOM_VERSION="0.31"
         if [ ! -f /config/custom_components/deltadore_tydom/manifest.json ]; then
