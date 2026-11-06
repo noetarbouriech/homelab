@@ -93,7 +93,8 @@ subset of the upstream Bubble modules. It lives in
 Kustomize generates three ConfigMaps (`origami-dashboard`, `origami-theme`,
 `origami-modules`) from those files. `helm.yaml` mounts them read-only at
 `/config/origami`, `/config/themes` and `/config/bubble_card/modules`, and adds
-the `lovelace.dashboards.origami` YAML dashboard. The result is at `/origami`.
+the `lovelace.dashboards.origami-lite` YAML dashboard. The result is at
+`/origami-lite` (HA requires a hyphen in dashboard URL paths).
 
 Setup / workflow:
 

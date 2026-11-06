@@ -114,7 +114,7 @@ spec:
           themes: !include_dir_merge_named themes
         lovelace:
           dashboards:
-            origami:
+            origami-lite:
               mode: yaml
               title: Origami
               icon: mdi:home-heart
@@ -149,6 +149,14 @@ spec:
           else
             yq eval-all --inplace --header-preprocess=false 'select(fileIndex == 0) *d select(fileIndex == 1)' /config/configuration.yaml /config-templates/configuration.yaml
           fi
+        fi
+
+        # The first Origami dashboard key was invalid because HA requires a
+        # hyphen in the dashboard URL path. forceInit never deletes keys, so
+        # drop the old `origami` entry left on the PVC; the template now uses
+        # `origami-lite`.
+        if [ "$(yq 'has("lovelace")' /config/configuration.yaml 2>/dev/null)" = "true" ]; then
+          yq eval --inplace --header-preprocess=false 'del(.lovelace.dashboards.origami)' /config/configuration.yaml || true
         fi
 
         # HA 2026.8+ migrated HTTP settings to /config/.storage/http; the legacy

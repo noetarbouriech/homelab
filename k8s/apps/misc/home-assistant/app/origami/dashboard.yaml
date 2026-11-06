@@ -287,7 +287,7 @@ views:
                   show_name: true
                   tap_action:
                     action: navigate
-                    navigation_path: '/origami'
+                    navigation_path: '/origami-lite'
                 - name: Living
                   icon: mdi:sofa
                   show_name: true
