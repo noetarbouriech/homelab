@@ -246,77 +246,78 @@ views:
                   tap_action:
                     action: navigate
                     navigation_path: '#house'
-          - type: custom:bubble-card
-            card_type: sub-buttons
-            grid_options:
-              columns: full
-              rows: auto
-            sub_button:
-              bottom:
-                - name: Reading
-                  entity: light.living_room_lampe_lecture
-                  icon: mdi:lamp
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#living-room'
-                - name: Donut
-                  entity: light.living_room_prise_salon
-                  icon: mdi:lightbulb
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#living-room'
-                - name: Entrance
-                  entity: light.living_room_lumiere_entree
-                  icon: mdi:lightbulb
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#entrance'
-                - name: Split
-                  entity: climate.split_sejour
-                  icon: mdi:air-conditioner
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#living-room'
-                - name: Radiator
-                  entity: climate.radiateurs
-                  icon: mdi:radiator
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#bedroom'
-                - name: Bay
-                  entity: cover.baie_sejour
-                  icon: mdi:window-shutter
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#living-room'
-                - name: Bedroom
-                  entity: cover.chambre
-                  icon: mdi:window-shutter
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#bedroom'
-                - name: All shutters
-                  entity: cover.all_shutters
-                  icon: mdi:window-shutter
-                  show_name: true
-                  show_state: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#house'
+          - type: custom:paper-buttons-row
+            styles:
+              display: grid
+              grid-template-columns: repeat(2, 1fr)
+              gap: var(--ha-space-2)
+              padding: var(--ha-space-2)
+            base_config:
+              layout: icon_name_state
+              tooltip: false
+              styles:
+                button:
+                  padding: var(--ha-space-3)
+                  border-radius: var(--radius-inner)
+                  background-color: var(--fill-subtle)
+                  justify-content: flex-start
+                icon:
+                  --mdc-icon-size: var(--icon-size-m)
+                name:
+                  font-size: var(--ha-font-size-s)
+                  font-weight: var(--ha-font-weight-bold)
+                state:
+                  font-size: var(--ha-font-size-xs)
+                  color: var(--secondary-text-color)
+            buttons:
+              - entity: light.living_room_lampe_lecture
+                name: Reading
+                icon: mdi:lamp
+                tap_action:
+                  action: navigate
+                  navigation_path: '#living-room'
+              - entity: light.living_room_prise_salon
+                name: Donut
+                icon: mdi:lightbulb
+                tap_action:
+                  action: navigate
+                  navigation_path: '#living-room'
+              - entity: light.living_room_lumiere_entree
+                name: Entrance
+                icon: mdi:lightbulb
+                tap_action:
+                  action: navigate
+                  navigation_path: '#entrance'
+              - entity: climate.split_sejour
+                name: Split
+                icon: mdi:air-conditioner
+                tap_action:
+                  action: navigate
+                  navigation_path: '#living-room'
+              - entity: climate.radiateurs
+                name: Radiator
+                icon: mdi:radiator
+                tap_action:
+                  action: navigate
+                  navigation_path: '#bedroom'
+              - entity: cover.baie_sejour
+                name: Bay
+                icon: mdi:window-shutter
+                tap_action:
+                  action: navigate
+                  navigation_path: '#living-room'
+              - entity: cover.chambre
+                name: Bedroom
+                icon: mdi:window-shutter
+                tap_action:
+                  action: navigate
+                  navigation_path: '#bedroom'
+              - entity: cover.all_shutters
+                name: All shutters
+                icon: mdi:window-shutter
+                tap_action:
+                  action: navigate
+                  navigation_path: '#house'
 
       # Rooms header with average temperature, windows and the table toggle
       - type: grid
