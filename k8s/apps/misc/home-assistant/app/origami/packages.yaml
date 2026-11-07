@@ -1,0 +1,88 @@
+# Origami helpers, tailored to this home.
+# Loaded through homeassistant.packages: !include_dir_named packages
+template:
+  - sensor:
+      - name: Greetings
+        unique_id: origami_greetings
+        state: >
+          {% set h = now().hour %}
+          {% if h < 6 %}Good night{% elif h < 12 %}Good morning{% elif h < 18 %}Good afternoon{% else %}Good evening{% endif %}
+
+      - name: Climate living room
+        unique_id: origami_climate_living_room
+        state: "{{ states('sensor.split_sejour_ambienttemperature') }}"
+        attributes:
+          temperature: "{{ states('sensor.split_sejour_ambienttemperature') | float(0) }}"
+          humidity: "{{ state_attr('climate.split_sejour', 'current_humidity') | float(0) }}"
+          windows_open: 0
+          color_code: >
+            {% set t = states('sensor.split_sejour_ambienttemperature') | float(0) %}
+            {% if t < 18 %}var(--state-climate-cool-color)
+            {% elif t > 24 %}var(--state-climate-heat-color)
+            {% else %}var(--success-color){% endif %}
+          temp_rank: warmest
+          most_humid: false
+
+      - name: Climate bedroom
+        unique_id: origami_climate_bedroom
+        state: "{{ states('sensor.radiateurs_temperature') }}"
+        attributes:
+          temperature: "{{ states('sensor.radiateurs_temperature') | float(0) }}"
+          humidity: 0
+          windows_open: 0
+          color_code: >
+            {% set t = states('sensor.radiateurs_temperature') | float(0) %}
+            {% if t < 18 %}var(--state-climate-cool-color)
+            {% elif t > 24 %}var(--state-climate-heat-color)
+            {% else %}var(--success-color){% endif %}
+          temp_rank: coldest
+          most_humid: false
+
+      - name: Climate home
+        unique_id: origami_climate_home
+        state: "{{ ((states('sensor.split_sejour_ambienttemperature') | float(0) + states('sensor.radiateurs_temperature') | float(0)) / 2) | round(1) }}"
+        attributes:
+          temperature_average: "{{ ((states('sensor.split_sejour_ambienttemperature') | float(0) + states('sensor.radiateurs_temperature') | float(0)) / 2) | round(1) }}"
+          windows_open: 0
+
+      - name: Lights on count
+        unique_id: origami_lights_on_count
+        state: "{{ states.light | selectattr('state', 'eq', 'on') | list | count }}"
+
+      - name: Windows open count
+        unique_id: origami_windows_open_count
+        state: "0"
+
+input_boolean:
+  room_climate_card:
+    name: Room climate table
+    icon: mdi:thermometer
+  all_rooms:
+    name: All rooms
+    icon: mdi:home
+
+script:
+  thermostat_step:
+    alias: Thermostat step
+    sequence:
+      - service: climate.set_temperature
+        target:
+          entity_id: "{{ thermostat }}"
+        data:
+          temperature: "{{ (state_attr(thermostat, 'temperature') | float(0)) + (step | float(0)) }}"
+    fields:
+      thermostat:
+        description: Climate entity
+        example: climate.split_sejour
+      step:
+        description: Temperature step
+        example: 0.5
+
+light:
+  - platform: group
+    name: All lights
+    unique_id: origami_all_lights
+    entities:
+      - light.living_room_lampe_lecture
+      - light.living_room_prise_salon
+      - light.living_room_lumiere_entree

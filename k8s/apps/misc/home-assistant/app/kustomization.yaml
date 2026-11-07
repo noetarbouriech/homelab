@@ -12,6 +12,9 @@ configMapGenerator:
   - name: origami-dashboard
     files:
       - dashboard.yaml=origami/dashboard.yaml
+  - name: origami-packages
+    files:
+      - origami.yaml=origami/packages.yaml
   - name: origami-theme
     files:
       - origami.yaml=origami/theme.yaml

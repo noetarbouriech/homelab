@@ -1,6 +1,6 @@
-# Origami Lite dashboard.
-# Bubble Card + Origami theme/modules, tailored to this home.
-# Room cards open Bubble Card pop-ups; the bottom bar navigates.
+# Origami Full layout for this home.
+# Uses the Origami Header, Weather, Notifications, Paper Buttons Row and Navbar
+# Card, plus Bubble Card for favorites and pop-ups.
 title: Origami
 views:
   - type: sections
@@ -10,61 +10,220 @@ views:
     max_columns: 2
     dense_section_placement: false
     sections:
-      # Header: greeting, people, weather, alarm, bins
+      # Header: menu, greeting/notifications, weather
       - type: grid
         column_span: 2
         cards:
-          - type: markdown
-            content: |
-              # Hello, Noé
-              {{ now().strftime('%A %d %B') }}
-            grid_options:
-              columns: full
-              rows: auto
-          - type: custom:bubble-card
-            card_type: separator
-            name: Home
-            modules:
-              - origami_header
-            origami_header:
-              value_style: chip
-              icon_size: var(--icon-size-m)
-            grid_options:
-              columns: full
-              rows: auto
-            sub_button:
-              main:
-                - name: Noé
-                  entity: person.noe
-                  icon: mdi:account
-                  show_name: false
-                  origami_header:
-                    name: Noé
-                  tap_action:
-                    action: more-info
-                - name: Weather
-                  entity: weather.forecast_home
-                  icon: mdi:weather-partly-cloudy
-                  origami_header:
-                    name: '${attr.temperature}°'
-                  tap_action:
-                    action: more-info
-                - name: Alarm
-                  entity: alarm_control_panel.tyxal_alarm
-                  icon: mdi:shield-home
-                  origami_header:
-                    name: '${state}'
-                  tap_action:
-                    action: more-info
-                - name: Bins
-                  entity: sensor.poubelles_dechets_recyclables
-                  icon: mdi:trash-can-outline
-                  origami_header:
-                    name: '${state}'
-                  tap_action:
-                    action: more-info
+          - type: custom:origami-header-card
+            mode: menu
+            position: top
+            layout: grid
+            all_users: true
+            buttons:
+              - name: Settings
+                icon: mdi:cog-outline
+                tap_action:
+                  action: navigate
+                  navigation_path: /config
+              - name: Autom.
+                icon: mdi:robot-outline
+                tap_action:
+                  action: navigate
+                  navigation_path: /config/automation/dashboard
+              - name: Menu
+                icon: mdi:menu
+                special: sidebar
+              - name: Edit
+                icon: mdi:pencil-outline
+                special: edit
+            cards:
+              type: custom:paper-buttons-row
+              extra_styles: '.flex-box:active { transform: scale(var(--press-scale)) }'
+              styles:
+                position: relative
+                gap: var(--ha-space-3)
+                padding: var(--ha-space-4) var(--ha-space-5) var(--ha-space-4) var(--ha-space-4)
+                background-color: var(--ha-card-background)
+                border-radius: var(--ha-card-border-radius)
+                box-shadow: var(--ha-card-box-shadow)
+              base_config:
+                layout: name|state
+                tooltip: false
+                styles:
+                  button:
+                    flex-direction: column
+                    padding: 0px
+                  name:
+                    padding: 0px
+                    white-space: nowrap
+                    font-weight: var(--ha-font-weight-bold)
+                    line-height: var(--ha-line-height-normal)
+                  state:
+                    padding: 0px
+                    margin-top: var(--ha-space-1)
+                    white-space: nowrap
+                    font-size: 12px
+                    font-weight: var(--ha-font-weight-medium)
+                    line-height: var(--ha-line-height-condensed)
+                    color: var(--secondary-text-color)
+              buttons:
+                - entity: sensor.greetings
+                  name: Greeting
+                  icon: mdi:weather-sunset-up
+                - entity: sensor.climate_home
+                  name: Average
+                  icon: mdi:thermometer
+                  state:
+                    attribute: temperature_average
+                    postfix: '°'
+                - entity: sensor.lights_on_count
+                  name: Lights
+                  icon: mdi:lightbulb-on-outline
+                - entity: sensor.windows_open_count
+                  name: Windows
+                  icon: mdi:window-closed-variant
 
-      # Favorites: tap a tile to open its room/house pop-up
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: custom:paper-buttons-row
+                extra_styles: ':host { display: block; height: 100% }'
+                styles:
+                  flex-direction: column
+                  justify-content: center
+                  height: 100%
+                  gap: var(--ha-space-1)
+                base_config:
+                  layout: state
+                  tap_action:
+                    action: none
+                  styles:
+                    button:
+                      min-height: unset
+                      padding: 0px
+                      align-self: flex-start
+                      justify-content: flex-start
+                      pointer-events: none
+                    state:
+                      padding: 0px
+                buttons:
+                  - entity: calendar.poubelles_toulouse_metropole
+                    state:
+                      attribute: message
+                    styles:
+                      state:
+                        font-size: var(--ha-font-size-s)
+                        font-weight: var(--ha-font-weight-bold)
+                        color: var(--secondary-text-color)
+                        white-space: nowrap
+                        overflow: hidden
+                        text-overflow: ellipsis
+                        max-width: 100px
+                  - entity: sensor.greetings
+                    state:
+                      case: first
+                    styles:
+                      state:
+                        font-size: var(--ha-font-size-l)
+                        font-weight: var(--ha-font-weight-bold)
+                        white-space: nowrap
+                        overflow: hidden
+                        text-overflow: ellipsis
+              - type: custom:origami-notifications
+                entities:
+                  - entity: calendar.poubelles_toulouse_metropole
+                    before:
+                      days: 1
+                  - entity: alarm_control_panel.tyxal_alarm
+                  - entity: binary_sensor.living_room_movement_sensor_occupancy
+                weather: weather.forecast_home
+                hide_when_empty: false
+                rotate: 3
+                css: |
+                  :host {
+                    --origami-pad: var(--ha-space-4);
+                    --origami-gap: var(--ha-space-4);
+                    --origami-tile: var(--ha-space-9, 36px);
+                    --origami-icon: var(--icon-size-m);
+                    --origami-radius: var(--radius-inner);
+                    --origami-card-bg: var(--fill-subtle);
+                    --origami-row-bg: var(--fill-subtle);
+                    --accent-color: var(--fill-active);
+                    --ha-tile-info-primary-font-size: var(--ha-font-size-m);
+                    --ha-tile-info-primary-font-weight: var(--ha-font-weight-bold);
+                    --ha-tile-info-secondary-font-size: var(--ha-font-size-s);
+                    --ha-tile-info-secondary-font-weight: var(--ha-font-weight-bold);
+                    --ha-tile-info-secondary-color: var(--secondary-text-color);
+                  }
+                  ha-card { box-shadow: none; }
+                  .texts { min-height: calc(var(--origami-tile) + 2 * var(--origami-pad)); }
+                  .slide { gap: var(--ha-space-1); }
+                  .icon {
+                    border-radius: var(--radius-inner);
+                    background: color-mix(in srgb, var(--tile-color) var(--tint-strength), var(--ha-card-background, var(--card-background-color)));
+                    box-shadow: var(--ha-card-box-shadow, none);
+                  }
+                  .head .icon.idle { color: var(--primary-text-color); }
+                  .badge {
+                    top: -6px;
+                    inset-inline-end: -6px;
+                    min-width: 20px;
+                    height: 20px;
+                    padding: 0 6px;
+                    border-radius: 10px;
+                    font-size: 12px;
+                    font-weight: var(--ha-font-weight-bold);
+                    box-shadow: none;
+                  }
+                  .list { gap: var(--ha-space-2); }
+                  .row { padding: var(--ha-space-3); }
+                  .row .title {
+                    font-size: var(--ha-font-size-m);
+                    font-weight: var(--ha-font-weight-bold);
+                  }
+                  .row .message { font-size: var(--ha-font-size-s); }
+
+          - type: custom:origami-weather
+            weather_entity: weather.forecast_home
+            sun_enabled: false
+            moon_enabled: false
+            color_mode: theme
+            card_height: 160px
+            card_padding: 20px
+            card_offset: 16px 0px 12px 0px
+            background_mode: color
+            background_threshold_entity: weather.forecast_home
+            background_thresholds:
+              - value: sunny
+                color: '#e7e2d9'
+                color_dark: '#24211d'
+              - value: clear-night
+                color: '#24211d'
+                color_dark: '#181715'
+              - value: partlycloudy
+                color: '#d9d5cc'
+                color_dark: '#2a2723'
+              - value: cloudy
+                color: '#c9c5bc'
+                color_dark: '#322e29'
+              - value: rainy
+                color: '#b8c4c8'
+                color_dark: '#263033'
+              - value: pouring
+                color: '#a7b7bd'
+                color_dark: '#202a2d'
+              - value: snowy
+                color: '#eef0ee'
+                color_dark: '#2b2e2c'
+              - value: fog
+                color: '#d3d0c8'
+                color_dark: '#302c27'
+              - value: windy
+                color: '#d0cec6'
+                color_dark: '#2c2a25'
+
+      # Favorites
       - type: grid
         column_span: 2
         cards:
@@ -147,7 +306,7 @@ views:
                     action: navigate
                     navigation_path: '#house'
 
-      # Rooms
+      # Rooms header with average temperature, windows and the table toggle
       - type: grid
         column_span: 2
         cards:
@@ -157,47 +316,503 @@ views:
             modules:
               - origami_header
             origami_header:
+              value_style: chip
               icon_size: var(--icon-size-l)
             grid_options:
               columns: full
               rows: auto
-          - type: custom:bubble-card
-            card_type: sub-buttons
-            modules:
-              - origami_tiles
-            grid_options:
-              columns: full
-              rows: auto
-            origami_tiles:
-              columns: 1
             sub_button:
-              bottom:
-                - name: Living Room
-                  entity: climate.split_sejour
-                  icon: mdi:sofa
-                  origami_tiles:
-                    state: '${attr.current_temperature}°'
+              main:
+                - name: Temperature
+                  entity: sensor.climate_home
+                  icon: mdi:thermometer
+                  origami_header:
+                    name: '${attr.temperature_average}°'
+                  tap_action:
+                    action: perform-action
+                    perform_action: input_boolean.toggle
+                    target:
+                      entity_id: input_boolean.room_climate_card
+                  hold_action:
+                    action: more-info
+                - name: Windows
+                  entity: sensor.windows_open_count
+                  icon: mdi:window-closed-variant
+                  origami_header:
+                    name: '${state}'
+                  tap_action:
+                    action: perform-action
+                    perform_action: input_boolean.toggle
+                    target:
+                      entity_id: input_boolean.room_climate_card
+                  hold_action:
+                    action: more-info
+                - name: Table
+                  entity: input_boolean.room_climate_card
+                  icon: mdi:chevron-down
+                  show_background: false
+                  origami_header:
+                    icon:
+                      'on': mdi:chevron-up
+                  tap_action:
+                    action: toggle
+                  hold_action:
+                    action: more-info
+
+          # Climate table, open while the toggle is on
+          - type: grid
+            square: false
+            columns: 1
+            visibility:
+              - condition: state
+                entity: input_boolean.room_climate_card
+                state: 'on'
+            cards:
+              - type: custom:paper-buttons-row
+                styles:
+                  display: grid
+                  grid-template-columns: auto auto auto 1fr auto auto
+                  grid-template-rows: repeat(3, var(--control-height-icon))
+                  column-gap: var(--ha-space-1)
+                  padding: 0px var(--ha-space-2)
+                  margin-bottom: var(--ha-space-5)
+                  border-radius: var(--ha-card-border-radius)
+                  background-image: >-
+                    repeating-linear-gradient(to bottom, transparent, transparent var(--control-height-icon),
+                    var(--fill-subtle) var(--control-height-icon), var(--fill-subtle) calc(var(--control-height-icon) * 2))
+                base_config:
+                  layout: icon|name
+                  tap_action:
+                    action: more-info
+                  state_styles:
+                    heating:
+                      button:
+                        background-color: var(--tint)
+                        color: var(--state-climate-heat-color)
+                      icon:
+                        color: var(--state-climate-heat-color)
+                  styles:
+                    button:
+                      padding: 0px 6px
+                      min-height: var(--icon-size-m)
+                      justify-content: center
+                      border-radius: var(--radius-inner)
+                    icon:
+                      --mdc-icon-size: var(--icon-size-2xs)
+                      margin-right: var(--ha-space-1)
+                      display: flex
+                      align-items: center
+                      justify-content: center
+                    name:
+                      padding: 0px
+                      font-size: var(--ha-font-size-s)
+                      font-weight: var(--ha-font-weight-bold)
+                      font-variant-numeric: tabular-nums
+                      white-space: nowrap
+                    state:
+                      padding: 0px
+                buttons:
+                  - entity: sensor.climate_living_room
+                    icon: mdi:circle
+                    name: Living
+                    tap_action:
+                      entity: climate.split_sejour
+                    styles:
+                      button:
+                        grid-column: 1
+                        justify-content: flex-start
+                      icon:
+                        color: '{{ state_attr("sensor.climate_living_room", "color_code") }}'
+                  - entity: climate.split_sejour
+                    icon: mdi:thermostat
+                    name:
+                      attribute: temperature
+                      postfix: °
+                    state:
+                      attribute: hvac_action
+                    styles:
+                      button:
+                        grid-column: 3
+                        color: var(--secondary-text-color)
+                  - entity: sensor.climate_living_room
+                    icon: mdi:thermometer
+                    name:
+                      attribute: temperature
+                      postfix: °
+                    styles:
+                      button:
+                        grid-column: 5
+                        color: var(--secondary-text-color)
+                  - entity: sensor.climate_living_room
+                    icon: mdi:water-percent
+                    name:
+                      attribute: humidity
+                      postfix: '%'
+                    styles:
+                      button:
+                        grid-column: 6
+                        color: var(--secondary-text-color)
+                  - entity: sensor.climate_bedroom
+                    icon: mdi:circle
+                    name: Bedroom
+                    tap_action:
+                      entity: climate.radiateurs
+                    styles:
+                      button:
+                        grid-column: 1
+                        justify-content: flex-start
+                      icon:
+                        color: '{{ state_attr("sensor.climate_bedroom", "color_code") }}'
+                  - entity: climate.radiateurs
+                    icon: mdi:radiator
+                    name:
+                      attribute: temperature
+                      postfix: °
+                    state:
+                      attribute: hvac_action
+                    styles:
+                      button:
+                        grid-column: 3
+                        color: var(--secondary-text-color)
+                  - entity: sensor.climate_bedroom
+                    icon: mdi:thermometer
+                    name:
+                      attribute: temperature
+                      postfix: °
+                    styles:
+                      button:
+                        grid-column: 5
+                        color: var(--secondary-text-color)
+
+          # Room cards
+          - type: grid
+            square: false
+            columns: 2
+            cards:
+              - type: custom:paper-buttons-row
+                styles:
+                  position: relative
+                  display: flex
+                  flex-wrap: wrap
+                  justify-content: flex-start
+                  align-items: center
+                  padding: var(--ha-space-4)
+                  background-color: var(--fill-subtle)
+                  border-radius: var(--ha-card-border-radius)
+                base_config:
+                  layout: icon
+                  active: []
                   tap_action:
                     action: navigate
                     navigation_path: '#living-room'
-                - name: Bedroom
-                  entity: climate.radiateurs
-                  icon: mdi:bed
-                  origami_tiles:
-                    state: '${attr.current_temperature}°'
+                  styles:
+                    button:
+                      padding: 0px
+                      margin-bottom: var(--ha-space-3)
+                      justify-content: flex-start
+                      pointer-events: none
+                    name:
+                      padding: 0px
+                      font-size: var(--ha-font-size-m)
+                      font-weight: var(--ha-font-weight-bold)
+                      white-space: nowrap
+                    state:
+                      padding: 0px
+                      font-size: var(--ha-font-size-s)
+                      font-weight: var(--ha-font-weight-medium)
+                      color: var(--secondary-text-color)
+                buttons:
+                  - entity: light.living_room_lampe_lecture
+                    layout: name
+                    name: false
+                    styles:
+                      button:
+                        z-index: 3
+                        pointer-events: all
+                        position: absolute
+                        top: 0px
+                        left: 0px
+                        width: 100%
+                        height: 100%
+                        border-radius: var(--ha-card-border-radius)
+                  - entity: light.living_room_lampe_lecture
+                    icon: mdi:sofa
+                    state_styles:
+                      'on':
+                        icon:
+                          background-color: var(--tint)
+                          color: var(--state-light-active-color)
+                    styles:
+                      button:
+                        width: calc(100% - var(--control-height-icon))
+                      icon:
+                        --mdc-icon-size: var(--icon-size-m)
+                        width: var(--tile-size)
+                        height: var(--tile-size)
+                        display: flex
+                        justify-content: center
+                        align-items: center
+                        border-radius: var(--radius-inner)
+                        background-color: var(--ha-card-background)
+                        box-shadow: var(--ha-card-box-shadow)
+                        transition: var(--transition-interactive)
+                  - icon: mdi:chevron-right
+                    styles:
+                      button:
+                        width: var(--control-height-icon)
+                        justify-content: center
+                      icon:
+                        --mdc-icon-size: var(--icon-size-l)
+                        opacity: var(--opacity-quiet)
+                  - name: Living
+                    layout: name
+                    styles:
+                      button:
+                        width: 100%
+                        margin: var(--ha-space-2) 0px 0px 0px
+                  - layout: icon
+                    icon: mdi:circle
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) var(--ha-space-2) 0px 0px
+                      icon:
+                        --mdc-icon-size: var(--dot-size)
+                        margin: -3px 0px 0px 0px
+                        color: '{{ state_attr("sensor.climate_living_room", "color_code") }}'
+                  - entity: sensor.climate_living_room
+                    layout: state
+                    state:
+                      attribute: temperature
+                      postfix: °
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) 0px 0px 0px
+                      state:
+                        font-weight: var(--ha-font-weight-bold)
+                  - entity: cover.baie_sejour
+                    layout: icon
+                    icon: mdi:window-shutter
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) var(--ha-space-2) 0px 0px
+                      icon:
+                        --mdc-icon-size: var(--dot-size)
+                        margin: -3px 0px 0px 0px
+                        color: var(--secondary-text-color)
+
+              - type: custom:paper-buttons-row
+                styles:
+                  position: relative
+                  display: flex
+                  flex-wrap: wrap
+                  justify-content: flex-start
+                  align-items: center
+                  padding: var(--ha-space-4)
+                  background-color: var(--fill-subtle)
+                  border-radius: var(--ha-card-border-radius)
+                base_config:
+                  layout: icon
+                  active: []
                   tap_action:
                     action: navigate
                     navigation_path: '#bedroom'
-                - name: Entrance
-                  entity: alarm_control_panel.tyxal_alarm
-                  icon: mdi:door
-                  origami_tiles:
-                    state: '${state}'
+                  styles:
+                    button:
+                      padding: 0px
+                      margin-bottom: var(--ha-space-3)
+                      justify-content: flex-start
+                      pointer-events: none
+                    name:
+                      padding: 0px
+                      font-size: var(--ha-font-size-m)
+                      font-weight: var(--ha-font-weight-bold)
+                      white-space: nowrap
+                    state:
+                      padding: 0px
+                      font-size: var(--ha-font-size-s)
+                      font-weight: var(--ha-font-weight-medium)
+                      color: var(--secondary-text-color)
+                buttons:
+                  - entity: switch.living_room_plug_2
+                    layout: name
+                    name: false
+                    styles:
+                      button:
+                        z-index: 3
+                        pointer-events: all
+                        position: absolute
+                        top: 0px
+                        left: 0px
+                        width: 100%
+                        height: 100%
+                        border-radius: var(--ha-card-border-radius)
+                  - entity: switch.living_room_plug_2
+                    icon: mdi:bed
+                    state_styles:
+                      'on':
+                        icon:
+                          background-color: var(--tint)
+                          color: var(--state-switch-active-color)
+                    styles:
+                      button:
+                        width: calc(100% - var(--control-height-icon))
+                      icon:
+                        --mdc-icon-size: var(--icon-size-m)
+                        width: var(--tile-size)
+                        height: var(--tile-size)
+                        display: flex
+                        justify-content: center
+                        align-items: center
+                        border-radius: var(--radius-inner)
+                        background-color: var(--ha-card-background)
+                        box-shadow: var(--ha-card-box-shadow)
+                        transition: var(--transition-interactive)
+                  - icon: mdi:chevron-right
+                    styles:
+                      button:
+                        width: var(--control-height-icon)
+                        justify-content: center
+                      icon:
+                        --mdc-icon-size: var(--icon-size-l)
+                        opacity: var(--opacity-quiet)
+                  - name: Bedroom
+                    layout: name
+                    styles:
+                      button:
+                        width: 100%
+                        margin: var(--ha-space-2) 0px 0px 0px
+                  - layout: icon
+                    icon: mdi:circle
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) var(--ha-space-2) 0px 0px
+                      icon:
+                        --mdc-icon-size: var(--dot-size)
+                        margin: -3px 0px 0px 0px
+                        color: '{{ state_attr("sensor.climate_bedroom", "color_code") }}'
+                  - entity: sensor.climate_bedroom
+                    layout: state
+                    state:
+                      attribute: temperature
+                      postfix: °
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) 0px 0px 0px
+                      state:
+                        font-weight: var(--ha-font-weight-bold)
+                  - entity: cover.chambre
+                    layout: icon
+                    icon: mdi:window-shutter
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) var(--ha-space-2) 0px 0px
+                      icon:
+                        --mdc-icon-size: var(--dot-size)
+                        margin: -3px 0px 0px 0px
+                        color: var(--secondary-text-color)
+
+              - type: custom:paper-buttons-row
+                styles:
+                  position: relative
+                  display: flex
+                  flex-wrap: wrap
+                  justify-content: flex-start
+                  align-items: center
+                  padding: var(--ha-space-4)
+                  background-color: var(--fill-subtle)
+                  border-radius: var(--ha-card-border-radius)
+                base_config:
+                  layout: icon
+                  active: []
                   tap_action:
                     action: navigate
                     navigation_path: '#entrance'
+                  styles:
+                    button:
+                      padding: 0px
+                      margin-bottom: var(--ha-space-3)
+                      justify-content: flex-start
+                      pointer-events: none
+                    name:
+                      padding: 0px
+                      font-size: var(--ha-font-size-m)
+                      font-weight: var(--ha-font-weight-bold)
+                      white-space: nowrap
+                    state:
+                      padding: 0px
+                      font-size: var(--ha-font-size-s)
+                      font-weight: var(--ha-font-weight-medium)
+                      color: var(--secondary-text-color)
+                buttons:
+                  - entity: light.living_room_lumiere_entree
+                    layout: name
+                    name: false
+                    styles:
+                      button:
+                        z-index: 3
+                        pointer-events: all
+                        position: absolute
+                        top: 0px
+                        left: 0px
+                        width: 100%
+                        height: 100%
+                        border-radius: var(--ha-card-border-radius)
+                  - entity: light.living_room_lumiere_entree
+                    icon: mdi:door
+                    state_styles:
+                      'on':
+                        icon:
+                          background-color: var(--tint)
+                          color: var(--state-light-active-color)
+                    styles:
+                      button:
+                        width: calc(100% - var(--control-height-icon))
+                      icon:
+                        --mdc-icon-size: var(--icon-size-m)
+                        width: var(--tile-size)
+                        height: var(--tile-size)
+                        display: flex
+                        justify-content: center
+                        align-items: center
+                        border-radius: var(--radius-inner)
+                        background-color: var(--ha-card-background)
+                        box-shadow: var(--ha-card-box-shadow)
+                        transition: var(--transition-interactive)
+                  - icon: mdi:chevron-right
+                    styles:
+                      button:
+                        width: var(--control-height-icon)
+                        justify-content: center
+                      icon:
+                        --mdc-icon-size: var(--icon-size-l)
+                        opacity: var(--opacity-quiet)
+                  - name: Entrance
+                    layout: name
+                    styles:
+                      button:
+                        width: 100%
+                        margin: var(--ha-space-2) 0px 0px 0px
+                  - entity: alarm_control_panel.tyxal_alarm
+                    layout: state
+                    state:
+                      attribute: changed_by
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) 0px 0px 0px
+                      state:
+                        font-weight: var(--ha-font-weight-bold)
+                  - entity: binary_sensor.living_room_movement_sensor_occupancy
+                    layout: icon
+                    icon: mdi:motion-sensor
+                    styles:
+                      button:
+                        margin: var(--ha-space-2) var(--ha-space-2) 0px 0px
+                      icon:
+                        --mdc-icon-size: var(--dot-size)
+                        margin: -3px 0px 0px 0px
+                        color: var(--secondary-text-color)
 
-      # House: whole-home controls and information
+      # House
       - type: grid
         column_span: 2
         cards:
@@ -266,52 +881,71 @@ views:
               columns: full
               rows: auto
 
-      # Bottom navigation
+      # Navbar (Navbar Card)
       - type: grid
         column_span: 2
         cards:
-          - type: custom:bubble-card
-            card_type: sub-buttons
-            modules:
-              - origami_button
-            origami_button:
-              columns: 5
-              background: false
-            grid_options:
-              columns: full
-              rows: auto
-            sub_button:
-              bottom:
-                - name: Home
-                  icon: mdi:home
-                  show_name: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '/origami-lite'
-                - name: Living
-                  icon: mdi:sofa
-                  show_name: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#living-room'
-                - name: Bedroom
-                  icon: mdi:bed
-                  show_name: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#bedroom'
-                - name: Entrance
-                  icon: mdi:door
-                  show_name: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#entrance'
-                - name: House
-                  icon: mdi:home-city
-                  show_name: true
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#house'
+          - type: custom:paper-buttons-row
+            base_config:
+              layout: icon
+              styles:
+                button:
+                  min-height: 120px
+                  pointer-events: none
+                icon:
+                  --mdc-icon-size: 0px
+            buttons:
+              - icon: mdi:backspace-reverse
+          - type: custom:navbar-card
+            routes:
+              - label: Home
+                icon: mdi:home
+                tap_action:
+                  action: navigate
+                  navigation_path: /origami-lite
+              - label: Living
+                icon: mdi:sofa
+                tap_action:
+                  action: navigate
+                  navigation_path: '#living-room'
+              - label: Bedroom
+                icon: mdi:bed
+                tap_action:
+                  action: navigate
+                  navigation_path: '#bedroom'
+              - label: Entrance
+                icon: mdi:door
+                tap_action:
+                  action: navigate
+                  navigation_path: '#entrance'
+              - label: House
+                icon: mdi:home-city
+                tap_action:
+                  action: navigate
+                  navigation_path: '#house'
+              - label: More
+                icon: mdi:dots-horizontal
+                tap_action:
+                  action: fire-dom-event
+                  origami_header: toggle
+                badge:
+                  show: "[[[ return !!user?.is_admin && Object.keys(states).some(id => id.startsWith('update.') && states[id].state === 'on'); ]]]"
+            mobile:
+              mode: floating
+              show_labels: popup_only
+            desktop:
+              position: right
+              mode: floating
+              min_width: 700
+              show_labels: popup_only
+            haptic:
+              url: false
+              tap_action: true
+            layout:
+              reflect_child_state: true
+              auto_padding:
+                enabled: true
+                mobile_px: 100
 
       # Pop-ups
       - type: grid

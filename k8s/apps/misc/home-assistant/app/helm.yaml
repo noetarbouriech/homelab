@@ -110,6 +110,7 @@ spec:
               trusted_networks:
                 - 10.244.0.0/22
               allow_bypass_login: true
+          packages: !include_dir_named packages
         frontend:
           themes: !include_dir_merge_named themes
           extra_module_url:
@@ -281,6 +282,9 @@ spec:
       - name: origami-modules
         configMap:
           name: origami-modules
+      - name: origami-packages
+        configMap:
+          name: origami-packages
     additionalMounts:
       - name: origami-dashboard
         mountPath: /config/origami
@@ -290,4 +294,7 @@ spec:
         readOnly: true
       - name: origami-modules
         mountPath: /config/bubble_card/modules
+        readOnly: true
+      - name: origami-packages
+        mountPath: /config/packages
         readOnly: true
