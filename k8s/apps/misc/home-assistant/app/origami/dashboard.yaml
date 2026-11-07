@@ -210,23 +210,29 @@ views:
                 tap_action:
                   action: more-info
               - type: custom:bubble-card
-                card_type: cover
+                card_type: button
                 entity: cover.baie_sejour
                 name: Bay
                 icon: mdi:window-shutter
                 show_state: true
+                tap_action:
+                  action: more-info
               - type: custom:bubble-card
-                card_type: cover
+                card_type: button
                 entity: cover.chambre
-                name: Bedroom shutter
+                name: Bedroom
                 icon: mdi:window-shutter
                 show_state: true
+                tap_action:
+                  action: more-info
               - type: custom:bubble-card
-                card_type: cover
+                card_type: button
                 entity: cover.all_shutters
-                name: All shutters
+                name: All
                 icon: mdi:window-shutter
                 show_state: true
+                tap_action:
+                  action: more-info
 
       # Rooms
       - type: grid
@@ -256,83 +262,35 @@ views:
             square: false
             columns: 2
             cards:
-              - type: custom:paper-buttons-row
-                styles:
-                  display: flex
-                  flex-direction: column
-                  gap: var(--ha-space-2)
-                  padding: var(--ha-space-4)
-                  background-color: var(--fill-subtle)
-                  border-radius: var(--ha-card-border-radius)
-                base_config:
-                  layout: icon_name_state
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#living-room'
-                buttons:
-                  - entity: climate.split_sejour
-                    name: Living Room
-                    icon: mdi:sofa
-                  - entity: sensor.split_sejour_ambienttemperature
-                    name: Temperature
-                    icon: mdi:thermometer
-                  - entity: cover.baie_sejour
-                    name: Bay
-                    icon: mdi:window-shutter
-                  - entity: light.living_room_lampe_lecture
-                    name: Reading light
-                    icon: mdi:lamp
-
-              - type: custom:paper-buttons-row
-                styles:
-                  display: flex
-                  flex-direction: column
-                  gap: var(--ha-space-2)
-                  padding: var(--ha-space-4)
-                  background-color: var(--fill-subtle)
-                  border-radius: var(--ha-card-border-radius)
-                base_config:
-                  layout: icon_name_state
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#bedroom'
-                buttons:
-                  - entity: climate.radiateurs
-                    name: Bedroom
-                    icon: mdi:bed
-                  - entity: sensor.radiateurs_temperature
-                    name: Temperature
-                    icon: mdi:thermometer
-                  - entity: cover.chambre
-                    name: Shutter
-                    icon: mdi:window-shutter
-                  - entity: switch.living_room_plug_2
-                    name: Plug
-                    icon: mdi:power-socket-eu
-
-              - type: custom:paper-buttons-row
-                styles:
-                  display: flex
-                  flex-direction: column
-                  gap: var(--ha-space-2)
-                  padding: var(--ha-space-4)
-                  background-color: var(--fill-subtle)
-                  border-radius: var(--ha-card-border-radius)
-                base_config:
-                  layout: icon_name_state
-                  tap_action:
-                    action: navigate
-                    navigation_path: '#entrance'
-                buttons:
-                  - entity: alarm_control_panel.tyxal_alarm
-                    name: Entrance
-                    icon: mdi:door
-                  - entity: light.living_room_lumiere_entree
-                    name: Light
-                    icon: mdi:lightbulb
-                  - entity: binary_sensor.living_room_movement_sensor_occupancy
-                    name: Movement
-                    icon: mdi:motion-sensor
+              - type: custom:bubble-card
+                card_type: button
+                button_type: switch
+                entity: climate.split_sejour
+                name: Living Room
+                icon: mdi:sofa
+                show_state: true
+                tap_action:
+                  action: navigate
+                  navigation_path: '#living-room'
+              - type: custom:bubble-card
+                card_type: button
+                button_type: switch
+                entity: climate.radiateurs
+                name: Bedroom
+                icon: mdi:bed
+                show_state: true
+                tap_action:
+                  action: navigate
+                  navigation_path: '#bedroom'
+              - type: custom:bubble-card
+                card_type: button
+                entity: alarm_control_panel.tyxal_alarm
+                name: Entrance
+                icon: mdi:door
+                show_state: true
+                tap_action:
+                  action: navigate
+                  navigation_path: '#entrance'
 
       # House
       - type: grid
