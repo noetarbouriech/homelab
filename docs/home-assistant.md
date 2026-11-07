@@ -80,42 +80,59 @@ Current target: chart `0.3.90`, HA `2026.11.0`.
   the `via_device` deprecation (removed in 2027.8); it does not block 2026.11.
   Newer releases (`v0.35`) exist if the integration misbehaves.
 
-## Dashboard — Origami Lite (Git-managed YAML)
+## Dashboard — Origami (Full, Git-managed YAML)
 
-The `Origami` dashboard is a Bubble Card layout using the Origami theme and a
-subset of the upstream Bubble modules. It lives in
-`k8s/apps/misc/home-assistant/app/origami/`:
+The `Origami` dashboard is the Full Origami layout, using the upstream Origami
+Header/Weather/Notifications, Paper Buttons Row, Navbar Card and Bubble Card.
+It lives in `k8s/apps/misc/home-assistant/app/origami/`:
 
-- `dashboard.yaml` — the Lite dashboard (Home, favorites, rooms, House, pop-ups)
+- `dashboard.yaml` — the Full layout (header/menu, greeting, weather, favorites,
+  rooms + climate table, House, navbar, pop-ups)
+- `packages.yaml` — the helpers the layout reads (`sensor.climate_*`,
+  `sensor.greetings`, `sensor.lights_on_count`, `light.all_lights`,
+  `input_boolean.room_climate_card`, `script.thermostat_step`)
 - `theme.yaml` — upstream Origami theme, pinned at release `V2.0`
-- `modules/origami_*.yaml` — the eight upstream modules used by the dashboard
+- `modules/origami_*.yaml` — the upstream Bubble modules used by the cards
 
-Kustomize generates three ConfigMaps (`origami-dashboard`, `origami-theme`,
-`origami-modules`) from those files. `helm.yaml` mounts them read-only at
-`/config/origami`, `/config/themes` and `/config/bubble_card/modules`, and adds
-the `lovelace.dashboards.origami-lite` YAML dashboard. The result is at
-`/origami-lite` (HA requires a hyphen in dashboard URL paths).
+Kustomize generates four ConfigMaps (`origami-dashboard`, `origami-theme`,
+`origami-modules`, `origami-packages`). `helm.yaml` mounts them read-only at
+`/config/origami`, `/config/themes`, `/config/bubble_card/modules` and
+`/config/packages`, adds `homeassistant.packages: !include_dir_named packages`,
+and defines the `lovelace.dashboards.origami-lite` YAML dashboard. The result is
+at `/origami-lite` (HA requires a hyphen in dashboard URL paths).
+
+The custom cards live in `/config/www/community/` and are registered in
+`.storage/lovelace_resources`:
+
+- Paper Buttons Row, Navbar Card, Origami Weather, Origami Notifications —
+  JavaScript modules
+- Montserrat font — a `css` resource at `/local/fonts/montserrat.css`
+- Origami Header — loaded before the frontend via
+  `frontend.extra_module_url: /hacsfiles/origami_header/origami-header.js`
 
 Setup / workflow:
 
-1. Install **Bubble Card Tools** from Settings > Marketplace, then add the
-   integration under Settings > Devices & services. It reads the modules from
-   `/config/bubble_card/modules`. Restart if the Marketplace asks.
-2. Select **Origami** under Profile > Theme. If it is not listed, run
+1. Keep **Bubble Card Tools** installed; it reads
+   `/config/bubble_card/modules`. The init script makes `/config/bubble_card`
+   writable by uid 568 so the integration can create `extra_module_url`.
+2. The theme is selected in the user's frontend data (`theme: Origami`). If it
+   is not applied, select **Origami** under Profile > Theme or run
    `frontend.reload_themes`.
-3. Edit `dashboard.yaml`, `theme.yaml` or the modules in Git, commit/push, then
-   `flux reconcile kustomization home-assistant -n iot --with-source`. The
-   mounts are ConfigMaps, so after a data-only change run
-   `kubectl -n iot rollout restart statefulset/home-assistant` (the theme can be
-   reloaded instead with `frontend.reload_themes`).
+3. Edit `dashboard.yaml`, `packages.yaml`, `theme.yaml` or the modules in Git,
+   commit/push, then `flux reconcile kustomization home-assistant -n iot
+   --with-source`. After a data-only ConfigMap change run
+   `kubectl -n iot rollout restart statefulset/home-assistant` (theme changes can
+   use `frontend.reload_themes`).
 4. The YAML dashboard is **read-only in the UI**; use `dashboard_test` for UI
    experiments. `map` and `dashboard_test` are unchanged.
 
-The Lite deliberately does not install Paper Buttons Row, Navbar Card, Origami
-Weather/Notifications, the Origami packages or the Montserrat font. The alarm
-panel, weather forecast and todo list are the built-in Home Assistant cards; all
-other cards are Bubble Card. The upstream modules are experimental and pinned to
-Origami `V2.0`; re-vendor and retest after a Bubble Card upgrade.
+The alarm panel, weather forecast and todo list are built-in Home Assistant
+cards; everything else is a custom/Bubble card. The full dashboard is pinned to
+Origami `V2.0`; re-vendor the theme/modules and re-check the custom card
+versions after a Bubble Card upgrade. Rollback: revert the commit, let Flux
+apply it, and the dashboard/package/theme mounts disappear; the existing `map`
+and `dashboard_test` dashboards remain.
+
 
 ## Secrets (Bitwarden Secrets Manager -> ExternalSecret)
 

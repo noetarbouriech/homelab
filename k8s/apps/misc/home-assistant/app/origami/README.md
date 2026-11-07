@@ -1,12 +1,18 @@
-# Origami Lite assets
+# Origami Full assets
 
 Vendored from [hazymorning/origami](https://github.com/hazymorning/origami) at
 release **V2.0** (commit `76f4fcd`, MIT license):
 
 - `theme.yaml` — upstream `themes/origami.yaml`
-- `modules/origami_*.yaml` — upstream `bubble_card/modules/` (the eight modules
-  used by this dashboard)
+- `modules/origami_*.yaml` — upstream `bubble_card/modules/` (the modules used by
+  the dashboard)
+- `dashboard.yaml` — Full layout adapted to this home (header/menu, greeting,
+  weather, favorites, rooms + climate table, House, navbar, pop-ups)
+- `packages.yaml` — the helpers the Full layout reads (`sensor.climate_*`,
+  `sensor.greetings`, `sensor.lights_on_count`, `light.all_lights`,
+  `input_boolean.room_climate_card`, `script.thermostat_step`)
 
-`dashboard.yaml` is a custom Lite layout for this home. It is not the upstream
-4,237-line dashboard; it uses Bubble Card plus the Origami theme/modules and the
-entities in the Living Room, Bedroom, Entrance and House sections.
+The layout also uses the custom cards installed in `/config/www/community/`:
+Paper Buttons Row, Navbar Card, Origami Weather, Origami Notifications and
+Origami Header (via `frontend.extra_module_url`). Bubble Card is the existing
+frontend module; the Montserrat font is under `/config/www/fonts/`.
