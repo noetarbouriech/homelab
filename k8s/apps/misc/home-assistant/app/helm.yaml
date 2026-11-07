@@ -247,6 +247,13 @@ spec:
         PY
         chown -R 568:568 /config/deps
 
+        # Bubble Card Tools writes /config/bubble_card/extra_module_url.
+        # The modules themselves are a read-only ConfigMap mount, but the
+        # parent directory must be writable by the HA user (568).
+        mkdir -p /config/bubble_card
+        chown 568:568 /config/bubble_card
+        chmod 2775 /config/bubble_card
+
         # --- Custom addition: install Delta Dore Tydom custom component (pinned) ---
         TYDOM_VERSION="0.31"
         if [ ! -f /config/custom_components/deltadore_tydom/manifest.json ]; then
