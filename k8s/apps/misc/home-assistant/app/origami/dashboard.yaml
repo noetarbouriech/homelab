@@ -248,60 +248,72 @@ views:
                     navigation_path: '#house'
           - type: custom:bubble-card
             card_type: sub-buttons
-            modules:
-              - origami_tiles
             grid_options:
               columns: full
               rows: auto
-            origami_tiles:
-              columns: 2
             sub_button:
               bottom:
                 - name: Reading
                   entity: light.living_room_lampe_lecture
                   icon: mdi:lamp
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#living-room'
                 - name: Donut
                   entity: light.living_room_prise_salon
                   icon: mdi:lightbulb
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#living-room'
                 - name: Entrance
                   entity: light.living_room_lumiere_entree
                   icon: mdi:lightbulb
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#entrance'
                 - name: Split
                   entity: climate.split_sejour
                   icon: mdi:air-conditioner
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#living-room'
                 - name: Radiator
                   entity: climate.radiateurs
                   icon: mdi:radiator
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#bedroom'
                 - name: Bay
                   entity: cover.baie_sejour
                   icon: mdi:window-shutter
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#living-room'
                 - name: Bedroom
                   entity: cover.chambre
                   icon: mdi:window-shutter
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#bedroom'
                 - name: All shutters
                   entity: cover.all_shutters
                   icon: mdi:window-shutter
+                  show_name: true
+                  show_state: true
                   tap_action:
                     action: navigate
                     navigation_path: '#house'
