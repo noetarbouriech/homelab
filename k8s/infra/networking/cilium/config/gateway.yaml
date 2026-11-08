@@ -34,3 +34,9 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
+    - name: voicechat
+      protocol: UDP
+      port: 24454
+      allowedRoutes:
+        namespaces:
+          from: All
