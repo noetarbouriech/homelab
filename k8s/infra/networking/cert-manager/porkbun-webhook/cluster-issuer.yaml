@@ -6,6 +6,7 @@ spec:
   acme:
     email: mail@noe-t.dev
     server: https://acme-v02.api.letsencrypt.org/directory
+    preferredChain: "ISRG Root X1"
     privateKeySecretRef:
       name: letsencrypt-porkbun-tls
     solvers:

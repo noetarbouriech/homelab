@@ -11,4 +11,3 @@ spec:
   dnsNames:
     - "*.home.noe-t.dev"
     - "home.noe-t.dev"
-  preferredChain: "ISRG Root X1"
